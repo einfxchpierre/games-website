@@ -5,4 +5,5 @@ export const levels = [
     'level_4',
     'level_5',
     'level_6',
+    'level_7',
 ];
