@@ -46,7 +46,7 @@ const GAMES_DATA = [
     id: "uno",
     game_name: "Uno",
     path: "games/uno/index.html",
-    icon: "pictures/icons/uno.png",
+    icon: "pictures/icons/Uno.png",
     btn_color: "#D2691E"
 },
     /*{
