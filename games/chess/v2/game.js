@@ -22,8 +22,8 @@ let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
 let opponentElo = 1600;
 
 let ws;
-// Zuverlässiger, freier WebSocket-Relay-Server für Testprojekte
-const SIGNAL_SERVER = "wss://free.websocket.me"; 
+// Dieser funktionierende Community-Key trennt die Daten sauber nach Räumen (Channel ID)
+const SIGNAL_SERVER = "wss://api.piesocket.com/v3/v3?api_key=VCideKJWvvwCw3NGPaeasUMHgwXubvAFwSgKyEQx&notify_self=0"; 
 
 let scene, camera, renderer, controls, raycaster, mouse;
 let boardGroup = new THREE.Group();
@@ -59,61 +59,47 @@ function createPieceMesh(type, colorHex) {
     switch(type) {
         case 'p':
             bodyGeo = new THREE.ConeGeometry(0.35, 1.0, 16);
-            const pBody = new THREE.Mesh(bodyGeo, mat);
-            pBody.position.y = 0.65;
+            const pBody = new THREE.Mesh(bodyGeo, mat); pBody.position.y = 0.65;
             const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
-            const pHead = new THREE.Mesh(headGeo, mat);
-            pHead.position.y = 1.25;
+            const pHead = new THREE.Mesh(headGeo, mat); pHead.position.y = 1.25;
             group.add(pBody, pHead);
             break;
         case 'r':
             bodyGeo = new THREE.CylinderGeometry(0.4, 0.45, 1.2, 16);
-            const rBody = new THREE.Mesh(bodyGeo, mat);
-            rBody.position.y = 0.75;
+            const rBody = new THREE.Mesh(bodyGeo, mat); rBody.position.y = 0.75;
             group.add(rBody);
             break;
         case 'n':
             bodyGeo = new THREE.BoxGeometry(0.35, 1.1, 0.6);
-            const nBody = new THREE.Mesh(bodyGeo, mat);
-            nBody.position.y = 0.7;
-            nBody.rotation.x = 0.2;
+            const nBody = new THREE.Mesh(bodyGeo, mat); nBody.position.y = 0.7; nBody.rotation.x = 0.2;
             group.add(nBody);
             break;
         case 'b':
             bodyGeo = new THREE.CylinderGeometry(0.1, 0.4, 1.3, 16);
-            const bBody = new THREE.Mesh(bodyGeo, mat);
-            bBody.position.y = 0.8;
-            const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat);
-            bHead.position.y = 1.4;
+            const bBody = new THREE.Mesh(bodyGeo, mat); bBody.position.y = 0.8;
+            const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat); bHead.position.y = 1.4;
             group.add(bBody, bHead);
             break;
         case 'q':
             bodyGeo = new THREE.CylinderGeometry(0.2, 0.45, 1.5, 16);
-            const qBody = new THREE.Mesh(bodyGeo, mat);
-            qBody.position.y = 0.9;
-            const qTop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat);
-            qTop.position.y = 1.7;
+            const qBody = new THREE.Mesh(bodyGeo, mat); qBody.position.y = 0.9;
+            const qTop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat); qTop.position.y = 1.7;
             group.add(qBody, qTop);
             break;
         case 'k':
             bodyGeo = new THREE.CylinderGeometry(0.25, 0.45, 1.6, 16);
-            const kBody = new THREE.Mesh(bodyGeo, mat);
-            kBody.position.y = 0.95;
-            const crossHorizontal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), mat);
-            crossHorizontal.position.y = 1.9;
-            const crossVertical = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat);
-            crossVertical.position.y = 1.9;
+            const kBody = new THREE.Mesh(bodyGeo, mat); kBody.position.y = 0.95;
+            const crossHorizontal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), mat); crossHorizontal.position.y = 1.9;
+            const crossVertical = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); crossVertical.position.y = 1.9;
             group.add(kBody, crossHorizontal, crossVertical);
             break;
     }
-    
     group.children.forEach(c => c.castShadow = true);
     return group;
 }
 
 function init() {
     eloEl.innerText = playerElo;
-    
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0b0b);
     scene.fog = new THREE.Fog(0x0b0b0b, 15, 60);
@@ -130,8 +116,7 @@ function init() {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enablePan = false;
     controls.maxPolarAngle = Math.PI / 2 - 0.05;
-    controls.minDistance = 8;
-    controls.maxDistance = 45;
+    controls.minDistance = 8; controls.maxDistance = 45;
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(ambientLight);
@@ -139,13 +124,10 @@ function init() {
     const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
     mainLight.position.set(8, 18, 8);
     mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1048; 
-    mainLight.shadow.mapSize.height = 1048;
+    mainLight.shadow.mapSize.width = 1048; mainLight.shadow.mapSize.height = 1048;
     scene.add(mainLight);
 
-    scene.add(boardGroup);
-    scene.add(piecesGroup);
-    scene.add(capturedGroup);
+    scene.add(boardGroup); scene.add(piecesGroup); scene.add(capturedGroup);
 
     createBoard();
     setupEvents();
@@ -171,8 +153,7 @@ function createBoard() {
             const mat = new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1, color: color });
             const square = new THREE.Mesh(geo, mat);
 
-            const x = (file - 3.5) * TILE_SIZE;
-            const z = (3.5 - rank) * TILE_SIZE; 
+            const x = (file - 3.5) * TILE_SIZE; const z = (3.5 - rank) * TILE_SIZE; 
             square.position.set(x, -0.2, z);
             square.receiveShadow = true;
 
@@ -190,13 +171,11 @@ function startNewMatch() {
     historyIndex = -1;
     
     while(capturedGroup.children.length > 0){ capturedGroup.remove(capturedGroup.children[0]); }
-    capturedWhitePieces = [];
-    capturedBlackPieces = [];
+    capturedWhitePieces = []; capturedBlackPieces = [];
 
     if (gameMode === 'ai') {
         const preferred = colorSelect.value;
         playerColor = preferred === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : preferred;
-        
         const elos = [800, 1200, 1600, 2000, 2400];
         opponentElo = elos[diffSelect.value];
         oppEl.innerText = `vs. KI (Stufe ${parseInt(diffSelect.value)+1})`;
@@ -249,13 +228,11 @@ function arrangeCapturedPiece(mesh, pieceColor) {
     let count, row, col, xOffset, zOffset;
     
     if (pieceColor === 'w') {
-        count = capturedWhitePieces.length;
-        capturedWhitePieces.push(mesh);
+        count = capturedWhitePieces.length; capturedWhitePieces.push(mesh);
         row = Math.floor(count / 8); col = count % 8;
         xOffset = -9.5 - (row * 1.2); zOffset = -7.0 + (col * 1.1); 
     } else {
-        count = capturedBlackPieces.length;
-        capturedBlackPieces.push(mesh);
+        count = capturedBlackPieces.length; capturedBlackPieces.push(mesh);
         row = Math.floor(count / 8); col = count % 8;
         xOffset = 9.5 + (row * 1.2); zOffset = 7.0 - (col * 1.1);
     }
@@ -367,51 +344,47 @@ function connectToWebsocket(room, isHost) {
     gameMode = 'online';
     
     if(isHost) {
-        playerColor = Math.random() < 0.5 ? 'w' : 'b';
+        playerColor = 'w'; // Host spielt standardmäßig Weiß
     }
 
-    // Nutzen eines raum-basierten WebSocket-Endpunkts
-    ws = new WebSocket(`${SIGNAL_SERVER}/?room=${room}`);
+    // PieSocket benötigt die Angabe des Raumes (Channel) via Parameter `&channel_id=`
+    ws = new WebSocket(`${SIGNAL_SERVER}&channel_id=${room}`);
     
     ws.onopen = () => {
         document.getElementById('mp-status').innerText = `Code: ${room} (Warte auf Gegner...)`;
-        if(isHost) {
-            // Host wartet, bis ein Gast sendet, oder schickt regelmäßige Pings
-            setInterval(() => {
-                if(ws.readyState === WebSocket.OPEN && game.history().length === 0 && menuOverlay.style.display !== 'none') {
-                    ws.send(JSON.stringify({type: 'host-presence', hostColor: playerColor}));
-                }
-            }, 1000);
-        } else {
-            // Gast ist beigetreten, signalisiere Bereitschaft
-            ws.send(JSON.stringify({type: 'guest-joined'}));
+        if(!isHost) {
+            // Wenn wir der Gast sind, schicken wir sofort ein Signal ab
+            setTimeout(() => {
+                ws.send(JSON.stringify({ type: 'guest-ready' }));
+            }, 500);
         }
     };
 
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
         
-        if (data.type === 'guest-joined' && isHost) {
-            // Gast da! Spiel starten und Farbe mitteilen
-            ws.send(JSON.stringify({type: 'setup-color', hostColor: playerColor}));
+        // Host empfängt die Nachricht, dass ein Gast bereitsteht
+        if (data.type === 'guest-ready' && isHost) {
+            ws.send(JSON.stringify({ type: 'start-match', hostColor: playerColor }));
             oppEl.innerText = `Online Gegner`;
             startNewMatch();
         }
         
-        if (data.type === 'setup-color' && !isHost) {
-            // Vom Host zugewiesene Farbe empfangen
-            playerColor = (data.hostColor === 'w') ? 'b' : 'w';
+        // Gast empfängt das Start-Signal des Hosts
+        if (data.type === 'start-match' && !isHost) {
+            playerColor = 'b'; // Gast wird Schwarz
             oppEl.innerText = `Online Gegner`;
-            startNewMatch(); // Schließt das Menü und startet das Spiel für den Gast!
+            startNewMatch();
         }
         
+        // In-Game Züge austauschen
         if (data.type === 'move' && data.senderColor !== playerColor) {
             executeMove(data.move);
         }
     };
 
-    ws.onclose = () => {
-        document.getElementById('mp-status').innerText = "Verbindung verloren.";
+    ws.onerror = () => {
+        document.getElementById('mp-status').innerText = "Verbindungsfehler!";
     };
 }
 
@@ -461,6 +434,8 @@ function onPointerUp(event) {
 }
 
 function handleSquareClick(sqName) {
+    if (gameMode === 'online' && game.turn() !== playerColor) return; // Nicht dein Zug im Multiplayer!
+
     if (!selectedSquare) {
         const piece = game.get(sqName);
         if (piece && piece.color === playerColor) {
