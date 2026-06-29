@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Pro Chess - Ultimate Mobile Edition</title>
+    <title>3D Pro Chess - Mobile Clean Edition</title>
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -13,56 +13,65 @@
 </head>
 <body>
 
-    <div id="ui">
-        <h1>3D Pro Chess</h1>
-        <p>Status: <span id="status-msg">Lädt...</span></p>
-        <p>Dein ELO: <span id="player-elo" style="color:#4CAF50">1200</span></p>
-        <p>Gegner: <span id="opponent-info">KI (Wählt aus...)</span></p>
-        
-        <div class="control-group">
-            <label for="color-select">Deine Farbe (vs. KI):</label>
-            <select id="color-select">
-                <option value="w" selected>Weiß</option>
-                <option value="b">Schwarz</option>
-                <option value="random">Zufall</option>
-            </select>
-        </div>
+    <div id="menu-overlay">
+        <div class="menu-card">
+            <h1>3D Pro Chess</h1>
+            <p class="elo-display">Dein ELO: <span id="player-elo">1200</span></p>
+            
+            <div class="menu-section">
+                <h3>Gegen die KI spielen</h3>
+                <div class="control-group">
+                    <label for="color-select">Deine Farbe:</label>
+                    <select id="color-select">
+                        <option value="w" selected>Weiß</option>
+                        <option value="b">Schwarz</option>
+                        <option value="random">Zufall</option>
+                    </select>
+                </div>
 
-        <div class="control-group">
-            <label for="difficulty-select">KI-Stufe (Offline):</label>
-            <select id="difficulty-select">
-                <option value="0">Stufe 1: Anfänger (ELO ~800)</option>
-                <option value="1">Stufe 2: Hobby (ELO ~1200)</option>
-                <option value="2" selected>Stufe 3: Fortgeschritten (ELO ~1600)</option>
-                <option value="3">Stufe 4: Meister (ELO ~2000)</option>
-                <option value="4">Stufe 5: Großmeister (ELO ~2400)</option>
-            </select>
+                <div class="control-group">
+                    <label for="difficulty-select">KI-Stufe:</label>
+                    <select id="difficulty-select">
+                        <option value="0">Stufe 1: Anfänger (~800)</option>
+                        <option value="1">Stufe 2: Hobby (~1200)</option>
+                        <option value="2" selected>Stufe 3: Fortgeschritten (~1600)</option>
+                        <option value="3">Stufe 4: Meister (~2000)</option>
+                        <option value="4">Stufe 5: Großmeister (~2400)</option>
+                    </select>
+                </div>
+                <button id="btn-start-game" class="btn-primary">Spiel starten</button>
+            </div>
+
+            <div class="menu-section">
+                <h3>Online Multiplayer</h3>
+                <p id="mp-status" style="font-size:0.8rem; margin-bottom:8px;">Status: Offline</p>
+                <button id="btn-create-room">Raum erstellen</button>
+                <div id="room-code-display" style="display:none; margin-top:8px;">
+                    <p style="font-size:0.75rem; margin:0;">Code für Freunde:</p>
+                    <input type="text" id="share-code-input" readonly>
+                </div>
+                <div class="join-group">
+                    <input type="text" id="join-code-input" placeholder="Raum-Code...">
+                    <button id="btn-join-room">Beitreten</button>
+                </div>
+            </div>
         </div>
-        <button id="btn-restart" style="background: #27ae60; margin-top: 12px;">Neues Spiel / Farbe anwenden</button>
     </div>
 
-    <div id="multiplayer-panel">
-        <h2>Online Multiplayer</h2>
-        <p id="mp-status">Modus: Offline gegen KI</p>
-        <button id="btn-create-room">Raum erstellen</button>
-        <div id="room-code-display" style="display:none; margin-top:8px;">
-            <p style="font-size:0.8rem; margin:0;">Code an Freund senden:</p>
-            <input type="text" id="share-code-input" readonly>
-        </div>
-        <hr style="border:0; border-top:1px solid #333; margin:12px 0;">
-        <input type="text" id="join-code-input" placeholder="Raum-Code einfügen...">
-        <button id="btn-join-room" style="background:#1a5276;">Raum beitreten</button>
-        <button id="btn-leave-mp" style="background:#7b241c; display:none;">Verbindung trennen</button>
+    <div id="game-status-bar" style="display: none;">
+        <span id="status-msg">Bereit</span>
+        <span id="opponent-info" style="font-weight: normal; opacity: 0.8;"></span>
+        <button id="btn-menu-back">Menü</button>
     </div>
 
-    <div id="timeline-panel">
-        <button id="btn-undo" style="width:60px;">◀ Zg.</button>
+    <div id="timeline-panel" style="display: none;">
+        <button id="btn-undo">◀ Zg.</button>
         <span id="timeline-label">Start</span>
-        <button id="btn-redo" style="width:60px;">Zg. ▶</button>
-        <button id="btn-jump-current" style="background:#4CAF50; width:110px;">Zur Gegenwart</button>
+        <button id="btn-redo">Zg. ▶</button>
+        <button id="btn-jump-current" style="background:#4CAF50;">Aktuell</button>
     </div>
 
-    <div id="loading" class="loading">Schachwelt wird prozedural berechnet...</div>
+    <div id="loading" class="loading">Schachwelt wird geladen...</div>
     <div id="canvas-container"></div>
 
     <script src="ai.js"></script>
