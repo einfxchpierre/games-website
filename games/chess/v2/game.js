@@ -22,8 +22,7 @@ let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
 let opponentElo = 1600;
 
 let ws;
-// Dieser funktionierende Community-Key trennt die Daten sauber nach Räumen (Channel ID)
-const SIGNAL_SERVER = "wss://api.piesocket.com/v3/v3?api_key=VCideKJWvvwCw3NGPaeasUMHgwXubvAFwSgKyEQx&notify_self=0"; 
+const ROOM_PREFIX = "3dprochess_2026_room_";
 
 let scene, camera, renderer, controls, raycaster, mouse;
 let boardGroup = new THREE.Group();
@@ -76,19 +75,19 @@ function createPieceMesh(type, colorHex) {
             break;
         case 'b':
             bodyGeo = new THREE.CylinderGeometry(0.1, 0.4, 1.3, 16);
-            const bBody = new THREE.Mesh(bodyGeo, mat); bBody.position.y = 0.8;
+            const bBody = new THREE.Mesh(bBody, mat); bBody.position.y = 0.8;
             const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat); bHead.position.y = 1.4;
             group.add(bBody, bHead);
             break;
         case 'q':
             bodyGeo = new THREE.CylinderGeometry(0.2, 0.45, 1.5, 16);
-            const qBody = new THREE.Mesh(bodyGeo, mat); qBody.position.y = 0.9;
+            const qBody = new THREE.Mesh(qBody, mat); qBody.position.y = 0.9;
             const qTop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat); qTop.position.y = 1.7;
             group.add(qBody, qTop);
             break;
         case 'k':
             bodyGeo = new THREE.CylinderGeometry(0.25, 0.45, 1.6, 16);
-            const kBody = new THREE.Mesh(bodyGeo, mat); kBody.position.y = 0.95;
+            const kBody = new THREE.Mesh(kBody, mat); kBody.position.y = 0.95;
             const crossHorizontal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), mat); crossHorizontal.position.y = 1.9;
             const crossVertical = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat); crossVertical.position.y = 1.9;
             group.add(kBody, crossHorizontal, crossVertical);
@@ -305,8 +304,10 @@ function executeMove(moveObj) {
         }
     });
 
-    if (gameMode === 'online' && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'move', move: moveObj, senderColor: playerColor }));
+    if (gameMode === 'online') {
+        const currentRoom = document.getElementById('share-code-input').value || document.getElementById('join-code-input').value;
+        const topic = ROOM_PREFIX + currentRoom.trim();
+        sendMqttMessage(topic, { type: 'move', move: moveObj, senderColor: playerColor });
     }
 }
 
@@ -344,48 +345,92 @@ function connectToWebsocket(room, isHost) {
     gameMode = 'online';
     
     if(isHost) {
-        playerColor = 'w'; // Host spielt standardmäßig Weiß
+        playerColor = 'w';
     }
 
-    // PieSocket benötigt die Angabe des Raumes (Channel) via Parameter `&channel_id=`
-    ws = new WebSocket(`${SIGNAL_SERVER}&channel_id=${room}`);
+    const topic = ROOM_PREFIX + room;
+    ws = new WebSocket(`wss://broker.hivemq.com:8000/mqtt`);
     
     ws.onopen = () => {
         document.getElementById('mp-status').innerText = `Code: ${room} (Warte auf Gegner...)`;
-        if(!isHost) {
-            // Wenn wir der Gast sind, schicken wir sofort ein Signal ab
-            setTimeout(() => {
-                ws.send(JSON.stringify({ type: 'guest-ready' }));
-            }, 500);
-        }
+        const clientId = "chess_" + Math.random().toString(16).substr(2, 8);
+        ws.send(stringToMqttConnect(clientId));
+        
+        setTimeout(() => {
+            ws.send(stringToMqttSubscribe(topic));
+            if(!isHost) {
+                sendMqttMessage(topic, { type: 'guest-ready' });
+            }
+        }, 300);
     };
 
     ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        
-        // Host empfängt die Nachricht, dass ein Gast bereitsteht
-        if (data.type === 'guest-ready' && isHost) {
-            ws.send(JSON.stringify({ type: 'start-match', hostColor: playerColor }));
-            oppEl.innerText = `Online Gegner`;
-            startNewMatch();
-        }
-        
-        // Gast empfängt das Start-Signal des Hosts
-        if (data.type === 'start-match' && !isHost) {
-            playerColor = 'b'; // Gast wird Schwarz
-            oppEl.innerText = `Online Gegner`;
-            startNewMatch();
-        }
-        
-        // In-Game Züge austauschen
-        if (data.type === 'move' && data.senderColor !== playerColor) {
-            executeMove(data.move);
+        if (e.data instanceof Blob) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const payload = parseMqttMessage(new Uint8Array(reader.result));
+                if (payload) handleNetworkMessage(payload, isHost, topic);
+            };
+            reader.readAsArrayBuffer(e.data);
         }
     };
 
     ws.onerror = () => {
         document.getElementById('mp-status').innerText = "Verbindungsfehler!";
     };
+}
+
+function handleNetworkMessage(data, isHost, topic) {
+    if (data.type === 'guest-ready' && isHost) {
+        sendMqttMessage(topic, { type: 'start-match' });
+        oppEl.innerText = `Online Gegner`;
+        startNewMatch();
+    }
+    if (data.type === 'start-match' && !isHost) {
+        playerColor = 'b';
+        oppEl.innerText = `Online Gegner`;
+        startNewMatch();
+    }
+    if (data.type === 'move' && data.senderColor !== playerColor) {
+        executeMove(data.move);
+    }
+}
+
+function sendMqttMessage(topic, obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(stringToMqttPublish(topic, JSON.stringify(obj)));
+    }
+}
+
+function stringToMqttConnect(id) {
+    const idLen = id.length;
+    const buf = new Uint8Array(14 + idLen);
+    buf.set([0x10, 12 + idLen, 0x00, 0x04, 0x4d, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3c, 0x00, idLen]);
+    for(let i=0; i<idLen; i++) buf[14+i] = id.charCodeAt(i);
+    return buf;
+}
+function stringToMqttSubscribe(topic) {
+    const tLen = topic.length;
+    const buf = new Uint8Array(7 + tLen);
+    buf.set([0x82, 5 + tLen, 0x00, 0x01, 0x00, tLen]);
+    for(let i=0; i<tLen; i++) buf[6+i] = topic.charCodeAt(i);
+    buf[6+tLen] = 0x00;
+    return buf;
+}
+function stringToMqttPublish(topic, msg) {
+    const tLen = topic.length; const mLen = msg.length;
+    const remLen = 2 + tLen + mLen;
+    const buf = new Uint8Array(2 + remLen);
+    buf.set([0x30, remLen, 0x00, tLen]);
+    for(let i=0; i<tLen; i++) buf[4+i] = topic.charCodeAt(i);
+    for(let i=0; i<mLen; i++) buf[4+tLen+i] = msg.charCodeAt(i);
+    return buf;
+}
+function parseMqttMessage(bytes) {
+    if (bytes[0] !== 0x30) return null;
+    const tLen = (bytes[2] << 8) | bytes[3];
+    const msgBytes = bytes.slice(4 + tLen);
+    try { return JSON.parse(new TextDecoder().decode(msgBytes)); } catch(e) { return null; }
 }
 
 function leaveMultiplayer() {
@@ -434,7 +479,7 @@ function onPointerUp(event) {
 }
 
 function handleSquareClick(sqName) {
-    if (gameMode === 'online' && game.turn() !== playerColor) return; // Nicht dein Zug im Multiplayer!
+    if (gameMode === 'online' && game.turn() !== playerColor) return;
 
     if (!selectedSquare) {
         const piece = game.get(sqName);
