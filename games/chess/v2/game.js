@@ -22,7 +22,8 @@ let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
 let opponentElo = 1600;
 
 let ws;
-const SIGNAL_SERVER = "wss://api.piesocket.com/v3/v3?api_key=VCideKJWvvwCw3NGPaeasUMHgwXubvAFwSgKyEQx&notify_self=0"; 
+// Zuverlässiger, freier WebSocket-Relay-Server für Testprojekte
+const SIGNAL_SERVER = "wss://free.websocket.me"; 
 
 let scene, camera, renderer, controls, raycaster, mouse;
 let boardGroup = new THREE.Group();
@@ -138,7 +139,7 @@ function init() {
     const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
     mainLight.position.set(8, 18, 8);
     mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1048; // Für mobile Performance optimiert
+    mainLight.shadow.mapSize.width = 1048; 
     mainLight.shadow.mapSize.height = 1048;
     scene.add(mainLight);
 
@@ -201,7 +202,6 @@ function startNewMatch() {
         oppEl.innerText = `vs. KI (Stufe ${parseInt(diffSelect.value)+1})`;
     }
     
-    // UI Umschalten: Menü weg, Feld-UI her
     menuOverlay.style.display = 'none';
     gameStatusBar.style.display = 'flex';
     timelinePanel.style.display = 'flex';
@@ -365,25 +365,53 @@ function checkGameState() {
 function connectToWebsocket(room, isHost) {
     if(ws) ws.close();
     gameMode = 'online';
-    if(isHost) playerColor = Math.random() < 0.5 ? 'w' : 'b';
+    
+    if(isHost) {
+        playerColor = Math.random() < 0.5 ? 'w' : 'b';
+    }
 
-    ws = new WebSocket(`${SIGNAL_SERVER}&channel_id=${room}`);
+    // Nutzen eines raum-basierten WebSocket-Endpunkts
+    ws = new WebSocket(`${SIGNAL_SERVER}/?room=${room}`);
+    
     ws.onopen = () => {
-        document.getElementById('mp-status').innerText = `Code: ${room}`;
+        document.getElementById('mp-status').innerText = `Code: ${room} (Warte auf Gegner...)`;
         if(isHost) {
-            setTimeout(() => { ws.send(JSON.stringify({type: 'setup-color', hostColor: playerColor})); }, 600);
+            // Host wartet, bis ein Gast sendet, oder schickt regelmäßige Pings
+            setInterval(() => {
+                if(ws.readyState === WebSocket.OPEN && game.history().length === 0 && menuOverlay.style.display !== 'none') {
+                    ws.send(JSON.stringify({type: 'host-presence', hostColor: playerColor}));
+                }
+            }, 1000);
+        } else {
+            // Gast ist beigetreten, signalisiere Bereitschaft
+            ws.send(JSON.stringify({type: 'guest-joined'}));
         }
     };
 
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        if (data.type === 'setup-color' && !isHost) {
-            playerColor = (data.hostColor === 'w') ? 'b' : 'w';
-            oppEl.innerText = `Online Duell`;
+        
+        if (data.type === 'guest-joined' && isHost) {
+            // Gast da! Spiel starten und Farbe mitteilen
+            ws.send(JSON.stringify({type: 'setup-color', hostColor: playerColor}));
+            oppEl.innerText = `Online Gegner`;
             startNewMatch();
         }
-        if (data.type === 'move' && data.senderColor !== playerColor) executeMove(data.move);
-        if (data.type === 'disconnect') { alert("Gegner weg."); leaveMultiplayer(); }
+        
+        if (data.type === 'setup-color' && !isHost) {
+            // Vom Host zugewiesene Farbe empfangen
+            playerColor = (data.hostColor === 'w') ? 'b' : 'w';
+            oppEl.innerText = `Online Gegner`;
+            startNewMatch(); // Schließt das Menü und startet das Spiel für den Gast!
+        }
+        
+        if (data.type === 'move' && data.senderColor !== playerColor) {
+            executeMove(data.move);
+        }
+    };
+
+    ws.onclose = () => {
+        document.getElementById('mp-status').innerText = "Verbindung verloren.";
     };
 }
 
@@ -393,6 +421,8 @@ function leaveMultiplayer() {
     menuOverlay.style.display = 'flex';
     gameStatusBar.style.display = 'none';
     timelinePanel.style.display = 'none';
+    document.getElementById('mp-status').innerText = "Status: Offline";
+    document.getElementById('room-code-display').style.display = 'none';
 }
 
 function setupEvents() {
@@ -418,9 +448,8 @@ function onPointerDown(event) { pointerDownTime = Date.now(); }
 
 function onPointerUp(event) {
     if (isAnimating || historyIndex < history.length - 1) return;
-    if (Date.now() - pointerDownTime > 180) return; // Swipes ignorieren
+    if (Date.now() - pointerDownTime > 180) return; 
 
-    // Klicks auf HTML-UI ignorieren
     if (event.clientY < 60 || event.clientY > window.innerHeight - 70) return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
