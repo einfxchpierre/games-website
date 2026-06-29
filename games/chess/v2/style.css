@@ -1,0 +1,57 @@
+body { 
+    margin: 0; 
+    overflow: hidden; 
+    background-color: #0b0b0b; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    color: #fff;
+    user-select: none;
+}
+#ui, #multiplayer-panel, #timeline-panel {
+    position: absolute; 
+    background: rgba(20, 20, 20, 0.85); 
+    padding: 20px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    border: 1px solid #333;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+#ui { top: 20px; left: 20px; width: 280px; }
+#multiplayer-panel { top: 20px; right: 20px; width: 300px; }
+#timeline-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; }
+
+h1, h2 { margin: 0 0 10px 0; font-size: 1.3rem; color: #4CAF50; letter-spacing: 0.5px; }
+h2 { color: #2196F3; font-size: 1.1rem; }
+p { margin: 6px 0; font-size: 0.9rem; color: #ccc; }
+span { font-weight: bold; }
+#status-msg { color: #FFC107; }
+
+.control-group {
+    margin-top: 10px;
+}
+.control-group label {
+    font-size: 0.8rem;
+    color: #aaa;
+    display: block;
+    margin-bottom: 4px;
+}
+
+button, select, input {
+    background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px 12px;
+    border-radius: 6px; cursor: pointer; font-family: inherit; width: 100%; margin-top: 4px;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+button:hover:not(:disabled) { background: #3a3a3a; border-color: #666; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+input { cursor: text; background: #151515; }
+
+#canvas-container { width: 100vw; height: 100vh; }
+.loading {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 1.8rem; pointer-events: none; transition: opacity 0.5s; font-weight: 300;
+}
+#timeline-label {
+    font-size: 0.9rem; min-width: 80px; text-align: center;
+}
