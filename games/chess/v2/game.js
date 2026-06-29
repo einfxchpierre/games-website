@@ -10,11 +10,11 @@ const HIGHLIGHT_MOVE = 0x2ecc71;
 let game = new Chess();
 let history = []; 
 let historyIndex = -1; 
-let gameMode = 'ai'; // 'ai' oder 'online'
+let gameMode = 'ai'; 
 let playerColor = 'w'; 
 let isAnimating = false;
+let pointerDownTime = 0;
 
-// Speicherlisten für weggestellte, geschlagene Figuren
 let capturedWhitePieces = [];
 let capturedBlackPieces = [];
 
@@ -27,19 +27,86 @@ const SIGNAL_SERVER = "wss://api.piesocket.com/v3/v3?api_key=VCideKJWvvwCw3NGPae
 let scene, camera, renderer, controls, raycaster, mouse;
 let boardGroup = new THREE.Group();
 let piecesGroup = new THREE.Group();
-let capturedGroup = new THREE.Group(); // Eigene 3D-Gruppe für geschlagene Figuren
+let capturedGroup = new THREE.Group(); 
 let squares = {};
 let currentPieces = {};
 let selectedSquare = null;
 let validMoves = [];
 
-// Dom Verknüpfungen
 const statusEl = document.getElementById('status-msg');
 const eloEl = document.getElementById('player-elo');
 const oppEl = document.getElementById('opponent-info');
 const loadingEl = document.getElementById('loading');
 const diffSelect = document.getElementById('difficulty-select');
 const colorSelect = document.getElementById('color-select');
+
+// Prozedurale Geometrie-Erzeugung für Schachfiguren
+function createPieceMesh(type, colorHex) {
+    const group = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.2, metalness: 0.2 });
+    
+    // Basis-Ring für alle Figuren
+    const baseGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.15, 16);
+    const base = new THREE.Mesh(baseGeo, mat);
+    base.position.y = 0.075;
+    base.castShadow = true;
+    group.add(base);
+
+    let bodyGeo;
+    switch(type) {
+        case 'p': // Bauer
+            bodyGeo = new THREE.ConeGeometry(0.35, 1.0, 16);
+            const pBody = new THREE.Mesh(bodyGeo, mat);
+            pBody.position.y = 0.65;
+            const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
+            const pHead = new THREE.Mesh(headGeo, mat);
+            pHead.position.y = 1.25;
+            group.add(pBody, pHead);
+            break;
+        case 'r': // Turm
+            bodyGeo = new THREE.CylinderGeometry(0.4, 0.45, 1.2, 16);
+            const rBody = new THREE.Mesh(bodyGeo, mat);
+            rBody.position.y = 0.75;
+            group.add(rBody);
+            break;
+        case 'n': // Springer
+            bodyGeo = new THREE.BoxGeometry(0.35, 1.1, 0.6);
+            const nBody = new THREE.Mesh(bodyGeo, mat);
+            nBody.position.y = 0.7;
+            nBody.rotation.x = 0.2;
+            group.add(nBody);
+            break;
+        case 'b': // Läufer
+            bodyGeo = new THREE.CylinderGeometry(0.1, 0.4, 1.3, 16);
+            const bBody = new THREE.Mesh(bodyGeo, mat);
+            bBody.position.y = 0.8;
+            const bHead = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mat);
+            bHead.position.y = 1.4;
+            group.add(bBody, bHead);
+            break;
+        case 'q': // Königin
+            bodyGeo = new THREE.CylinderGeometry(0.2, 0.45, 1.5, 16);
+            const qBody = new THREE.Mesh(bodyGeo, mat);
+            qBody.position.y = 0.9;
+            const qTop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mat);
+            qTop.position.y = 1.7;
+            group.add(qBody, qTop);
+            break;
+        case 'k': // König
+            bodyGeo = new THREE.CylinderGeometry(0.25, 0.45, 1.6, 16);
+            const kBody = new THREE.Mesh(bodyGeo, mat);
+            kBody.position.y = 0.95;
+            const crossHorizontal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), mat);
+            crossHorizontal.position.y = 1.9;
+            const crossVertical = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), mat);
+            crossVertical.position.y = 1.9;
+            group.add(kBody, crossHorizontal, crossVertical);
+            break;
+    }
+    
+    group.children.forEach(c => c.castShadow = true);
+    return group;
+}
 
 function init() {
     eloEl.innerText = playerElo;
@@ -90,6 +157,7 @@ function init() {
 
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointerup', onPointerUp);
 
     loadingEl.style.opacity = 0;
     animate();
@@ -123,7 +191,6 @@ function startNewMatch() {
     history = [];
     historyIndex = -1;
     
-    // Alte geschlagene Arrays leeren
     while(capturedGroup.children.length > 0){ capturedGroup.remove(capturedGroup.children[0]); }
     capturedWhitePieces = [];
     capturedBlackPieces = [];
@@ -141,7 +208,6 @@ function startNewMatch() {
         oppEl.innerText = `KI Stufe ${parseInt(diffSelect.value)+1} (${opponentElo})`;
     }
     
-    // Kamera positionieren basierend auf Spieler-Farbe
     let targetZ = (playerColor === 'w') ? 18 : -18;
     new TWEEN.Tween(camera.position).to({ x: 0, y: 16, z: targetZ }, 1200).easing(TWEEN.Easing.Cubic.Out).start();
 
@@ -149,7 +215,6 @@ function startNewMatch() {
     updateTimelineUI();
     checkGameState();
 
-    // Falls KI weiß zugelost wurde, direkt triggern
     if (gameMode === 'ai' && playerColor === 'b') {
         statusEl.innerText = "KI überlegt...";
         setTimeout(triggerBot, 600);
@@ -179,37 +244,30 @@ function syncBoardTo3D() {
     }
 }
 
-// --- LOGIK FÜR DAS PLATZIEREN GESCHLAGENER FIGUREN NEBEN DEM BRETT ---
 function arrangeCapturedPiece(mesh, pieceColor) {
     piecesGroup.remove(mesh);
     capturedGroup.add(mesh);
 
-    // Skalierung leicht verkleinern, damit sie kompakt am Rand stehen
-    new TWEEN.Tween(mesh.scale).to({x: 0.75, y: 0.75, z: 0.75}, 300).start();
-
+    new TWEEN.Tween(mesh.scale).to({x: 0.65, y: 0.65, z: 0.65}, 300).start();
     let count, row, col, xOffset, zOffset;
     
     if (pieceColor === 'w') {
-        // Weiße geschlagene Figuren -> zur schwarzen Seite (oben, negatives Z)
         count = capturedWhitePieces.length;
         capturedWhitePieces.push(mesh);
         row = Math.floor(count / 8);
         col = count % 8;
-        xOffset = -9.5 + (col * 1.1); // Links neben dem Feld aufreihen
-        zOffset = -10.5 - (row * 1.2); 
+        xOffset = -9.5 - (row * 1.2);
+        zOffset = -7.0 + (col * 1.1); 
     } else {
-        // Schwarze geschlagene Figuren -> zur weißen Seite (unten, positives Z)
         count = capturedBlackPieces.length;
         capturedBlackPieces.push(mesh);
         row = Math.floor(count / 8);
         col = count % 8;
-        xOffset = 9.5 - (col * 1.1); // Rechts neben dem Feld aufreihen
-        zOffset = 10.5 + (row * 1.2);
+        xOffset = 9.5 + (row * 1.2);
+        zOffset = 7.0 - (col * 1.1);
     }
 
-    // Sanfter Flug an den Spielfeldrand
     new TWEEN.Tween(mesh.position).to({ x: xOffset, y: 0, z: zOffset }, 600).easing(TWEEN.Easing.Cubic.Out).start();
-    new TWEEN.Tween(mesh.rotation).to({ y: mesh.rotation.y + Math.PI }, 600).start();
 }
 
 function animateMove3D(move, callback) {
@@ -225,8 +283,6 @@ function animateMove3D(move, callback) {
     }
 
     const targetSquare = squares[move.to];
-    
-    // Schlag-Erkennung
     let capturedSq = move.to;
     if (move.flags.includes('e')) capturedSq = move.to[0] + move.from[1];
     const capturedMesh = currentPieces[capturedSq];
@@ -344,7 +400,6 @@ function connectToWebsocket(room, isHost) {
     if(ws) ws.close();
     gameMode = 'online';
     
-    // Bei Online-Duell wird die Farbe beider Spieler komplett zufällig (50:50) vergeben
     if(isHost) {
         playerColor = Math.random() < 0.5 ? 'w' : 'b';
     }
@@ -360,7 +415,6 @@ function connectToWebsocket(room, isHost) {
         diffSelect.disabled = true;
 
         if(isHost) {
-            // Sende dem beitretenden Spieler, welche Farbe er kriegt (Invertiert vom Host)
             setTimeout(() => {
                 ws.send(JSON.stringify({type: 'setup-color', hostColor: playerColor}));
             }, 600);
@@ -416,16 +470,31 @@ function setupEvents() {
 }
 
 function onPointerDown(event) {
+    pointerDownTime = Date.now();
+}
+
+function onPointerUp(event) {
     if (isAnimating || historyIndex < history.length - 1) return;
     if (gameMode === 'online' && game.turn() !== playerColor) return;
     if (gameMode === 'ai' && game.turn() !== playerColor) return; 
 
-    if (event.clientX < 320 && event.clientY < 320) return; 
-    if (event.clientX > window.innerWidth - 340 && event.clientY < 240) return;
-    if (event.clientY > window.innerHeight - 80) return;
+    if (Date.now() - pointerDownTime > 200) return;
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const rectUi = document.getElementById('ui').getBoundingClientRect();
+    const rectMp = document.getElementById('multiplayer-panel').getBoundingClientRect();
+    const rectTl = document.getElementById('timeline-panel').getBoundingClientRect();
+    
+    const x = event.clientX;
+    const y = event.clientY;
+
+    if ((x >= rectUi.left && x <= rectUi.right && y >= rectUi.top && y <= rectUi.bottom) ||
+        (x >= rectMp.left && x <= rectMp.right && y >= rectMp.top && y <= rectMp.bottom) ||
+        (x >= rectTl.left && x <= rectTl.right && y >= rectTl.top && y <= rectTl.bottom)) {
+        return;
+    }
+
+    mouse.x = (x / window.innerWidth) * 2 - 1;
+    mouse.y = -(y / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     
     const intersects = raycaster.intersectObjects(boardGroup.children);
@@ -461,7 +530,6 @@ function handleSquareClick(sqName) {
 function highlightSquare(sqName, hexColor) {
     if (squares[sqName]) squares[sqName].material.color.setHex(hexColor);
 }
-
 function clearHighlights() {
     for (let key in squares) squares[key].material.color.setHex(squares[key].userData.originalColor);
 }
