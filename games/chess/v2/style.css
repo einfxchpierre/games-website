@@ -2,83 +2,99 @@ body {
     margin: 0; 
     overflow: hidden; 
     background-color: #0b0b0b; 
-    font-family: 'Segoe UI', system-ui, sans-serif; 
+    font-family: '-apple-system', system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
     color: #fff;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
 }
 
-#ui, #multiplayer-panel, #timeline-panel {
-    position: absolute; 
-    background: rgba(20, 20, 20, 0.9); 
-    padding: 15px; 
-    border-radius: 12px; 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-    border: 1px solid #333;
-    z-index: 10;
-    backdrop-filter: blur(10px);
+/* Vollbild-Menü über dem Spiel */
+#menu-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease;
+}
+
+.menu-card {
+    background: #16161a;
+    border: 1px solid #2a2a32;
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
     box-sizing: border-box;
 }
 
-#ui { top: 20px; left: 20px; width: 280px; }
-#multiplayer-panel { top: 20px; right: 20px; width: 300px; }
-#timeline-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; justify-content: center; width: auto; }
+h1 { margin: 0 0 4px 0; font-size: 1.6rem; text-align: center; color: #4CAF50; }
+.elo-display { text-align: center; margin-top: 0; margin-bottom: 20px; color: #aaa; font-size: 0.9rem; }
+.elo-display span { color: #4CAF50; font-weight: bold; }
 
-h1, h2 { margin: 0 0 5px 0; font-size: 1.2rem; color: #4CAF50; letter-spacing: 0.5px; }
-h2 { color: #2196F3; font-size: 1.05rem; }
-p { margin: 4px 0; font-size: 0.85rem; color: #ccc; }
-span { font-weight: bold; }
-#status-msg { color: #FFC107; }
+.menu-section {
+    background: #1f1f26;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 1px solid #2d2d38;
+}
+.menu-section h3 { margin: 0 0 10px 0; font-size: 1rem; color: #2196F3; font-weight: 600; }
 
-.control-group { margin-top: 8px; }
-.control-group label { font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 2px; }
+.control-group { margin-bottom: 10px; }
+.control-group label { font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 4px; }
 
 button, select, input {
-    background: #2a2a2a; color: white; border: 1px solid #444; padding: 10px 12px;
-    border-radius: 6px; cursor: pointer; font-family: inherit; width: 100%; margin-top: 4px;
-    box-sizing: border-box; font-size: 0.9rem;
-    transition: all 0.2s;
+    background: #2a2a35; color: white; border: 1px solid #3a3a45; padding: 12px;
+    border-radius: 8px; cursor: pointer; font-family: inherit; width: 100%; box-sizing: border-box;
+    font-size: 0.9rem; transition: all 0.2s;
 }
-button:hover:not(:disabled) { background: #3a3a3a; border-color: #666; }
-button:disabled { opacity: 0.3; cursor: not-allowed; }
-input { cursor: text; background: #151515; }
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.3; }
+input { background: #0f0f12; border: 1px solid #25252e; color: #fff; }
+
+.btn-primary { background: #27ae60; border: none; font-weight: bold; margin-top: 10px; }
+.join-group { display: flex; gap: 6px; margin-top: 8px; }
+.join-group button { width: auto; background: #1a5276; }
+
+/* --- IN-GAME MINIMAL-UI --- */
+#game-status-bar {
+    position: absolute;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(22, 22, 26, 0.9);
+    border: 1px solid #2d2d38;
+    padding: 8px 16px;
+    border-radius: 30px;
+    display: flex; gap: 12px; align-items: center;
+    z-index: 10; font-size: 0.85rem; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    white-space: nowrap;
+}
+#status-msg { color: #FFC107; font-weight: bold; }
+#btn-menu-back { padding: 4px 10px; font-size: 0.75rem; background: #3a3a45; width: auto; border-radius: 15px; }
+
+#timeline-panel {
+    position: absolute;
+    bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(22, 22, 26, 0.9); 
+    padding: 8px; border-radius: 12px;
+    border: 1px solid #2d2d38;
+    z-index: 10; display: flex; gap: 6px; align-items: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    width: calc(100% - 32px); max-width: 360px;
+}
+#timeline-panel button { padding: 10px; font-size: 0.85rem; margin: 0; }
+#timeline-label { font-size: 0.85rem; min-width: 50px; text-align: center; }
 
 #canvas-container { width: 100vw; height: 100vh; position: absolute; top:0; left:0; z-index: 1; }
 .loading {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 1.5rem; pointer-events: none; transition: opacity 0.5s; font-weight: 300; z-index: 100;
-}
-#timeline-label { font-size: 0.85rem; min-width: 60px; text-align: center; }
-
-/* --- RESPONSIVE MEDIA QUERIES --- */
-@media (max-width: 768px) {
-    #ui, #multiplayer-panel {
-        position: absolute;
-        width: calc(50% - 15px);
-        max-height: 35vh;
-        overflow-y: auto;
-        font-size: 0.8rem;
-        padding: 10px;
-    }
-    #ui { top: 10px; left: 10px; }
-    #multiplayer-panel { top: 10px; right: 10px; }
-    
-    #timeline-panel {
-        bottom: 15px;
-        width: calc(100% - 20px);
-        padding: 10px;
-    }
-    
-    button, select, input {
-        padding: 8px 10px;
-        font-size: 0.8rem;
-    }
-    h1, h2 { font-size: 1rem; }
-}
-
-@media (max-width: 480px) {
-    #ui { top: 10px; left: 10px; width: calc(100% - 20px); max-height: 22vh; }
-    #multiplayer-panel { top: 24vh; left: 10px; right: 10px; width: calc(100% - 20px); max-height: 22vh; }
-    #timeline-panel { bottom: 10px; }
+    font-size: 1.2rem; color: #aaa; pointer-events: none; transition: opacity 0.5s; z-index: 101;
 }
