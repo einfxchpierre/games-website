@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D P2P Adaptive Chess</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div id="elo-display">Dein ELO: <span id="elo-value">1200</span></div>
+        
+        <div id="menu">
+            <h2>3D Schach</h2>
+            <button id="btn-ai">Gegen adaptive KI spielen</button>
+            <hr>
+            <button id="btn-host">P2P Spiel hosten</button>
+            <div id="room-info" class="hidden">
+                <p>Gib diesen Code deinem Freund:</p>
+                <input type="text" id="room-id" readonly>
+            </div>
+            <hr>
+            <input type="text" id="join-id" placeholder="Raum-Code eingeben">
+            <button id="btn-join">Spiel beitreten</button>
+        </div>
+
+        <div id="status-turn" class="hidden">Weiß ist am Zug</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="ai.js"></script>
+    <script src="p2p.js"></script>
+    <script src="threeChess.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
