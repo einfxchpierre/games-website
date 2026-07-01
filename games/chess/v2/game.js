@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const chess = new Chess();
-    let engine3d = null; // Korrigierter Variablenname (Zahl am Anfang entfernt)
+    let engine3d = null; 
     let p2p = null;
     
     let playerColor = 'w'; 
@@ -23,18 +23,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function handleSquareSelection(square) {
         if (chess.game_over()) return;
-        if (chess.turn() !== playerColor) return; 
+        if (chess.turn() !== playerColor) return; // Nicht dein Zug!
 
         if (!selectedSquare) {
+            // 1. Klick: Figur auswählen
             const piece = chess.get(square);
+            // Nur auswählen, wenn eine eigene Figur auf dem Feld steht
             if (piece && piece.color === playerColor) {
                 selectedSquare = square;
+                if (engine3d) engine3d.highlightSquare(square); // Optisches Feedback
             }
         } else {
-            const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
+            // 2. Klick: Zug ausführen auf Zielquadrat
+            const fromSquare = selectedSquare;
+            const toSquare = square;
             selectedSquare = null;
+            if (engine3d) engine3d.clearHighlight(); // Highlight entfernen
+
+            // Zug-Validierung gegen chess.js ausführen
+            const move = chess.move({ 
+                from: fromSquare, 
+                to: toSquare, 
+                promotion: 'q' // Automatische Umwandlung in Dame bei Bauern auf der Grundlinie
+            });
 
             if (move) {
+                // Zug war gültig -> 3D Brett neu zeichnen
                 engine3d.updateBoardPieces(chess.board());
                 updateStatus();
 
@@ -42,6 +56,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     p2p.sendMove(move);
                 } else if (gameMode === 'ai' && !chess.game_over()) {
                     setTimeout(triggerAIMove, 600);
+                }
+            } else {
+                // Falls der Zug illegal war, aber das neue Feld eine eigene Figur ist,
+                // wählen wir diese stattdessen direkt als neue Auswahl aus
+                const piece = chess.get(square);
+                if (piece && piece.color === playerColor) {
+                    selectedSquare = square;
+                    if (engine3d) engine3d.highlightSquare(square);
                 }
             }
         }
@@ -90,7 +112,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 playerColor = isClient ? 'b' : 'w';
                 startGame();
                 if(isClient && engine3d) {
-                     // Kamera für den schwarzen Spieler umdrehen
                      engine3d.camera.position.set(0, 8, -9);
                 }
             },
@@ -115,7 +136,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('menu').classList.add('hidden');
         document.getElementById('status-turn').classList.remove('hidden');
         
-        // Initialisierung der 3D Ansicht
         engine3d = new ThreeChess('canvas-container', handleSquareSelection);
         engine3d.updateBoardPieces(chess.board());
         updateStatus();
