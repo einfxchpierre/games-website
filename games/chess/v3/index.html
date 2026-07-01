@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Geometric Chess</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-container">
+        <div id="elo-display">
+            ELO: <span id="elo-value">1200</span>
+        </div>
+
+        <div id="menu">
+            <h2>3D Schach</h2>
+            <hr>
+            <button id="btn-ai">Gegen KI spielen</button>
+            <hr>
+            <p style="font-size: 0.9rem; color: #ccc;">Mit Freund spielen:</p>
+            <input type="text" id="custom-host-id" placeholder="Wunsch-Code (optional)">
+            <button id="btn-host">P2P Spiel hosten</button>
+            
+            <div id="room-info" class="hidden" style="margin-top: 10px;">
+                <p style="font-size: 0.85rem; margin-bottom: 5px; color: #aaa;">Dein Raum-Code:</p>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="room-id" readonly>
+                    <button id="btn-copy">Kopieren</button>
+                </div>
+            </div>
+            
+            <hr style="margin: 15px 0;">
+            <input type="text" id="join-id" placeholder="Code eingeben">
+            <button id="btn-join" style="background-color: #b59d7c;">Spiel beitreten</button>
+        </div>
+
+        <div id="status-turn" class="hidden">
+            Weiß ist am Zug.
+        </div>
+    </div>
+
+    <script src="ai.js"></script>
+    <script src="threeChess.js"></script>
+    <script src="p2p.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
