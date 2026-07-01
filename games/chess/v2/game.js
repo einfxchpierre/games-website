@@ -1,19 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
     const chess = new Chess();
-    let 3dEngine = null;
+    let engine3d = null; // Korrigierter Variablenname (Zahl am Anfang entfernt)
     let p2p = null;
     
-    let playerColor = 'w'; // 'w' oder 'b'
-    let gameMode = 'ai'; // 'ai' oder 'p2p'
+    let playerColor = 'w'; 
+    let gameMode = 'ai'; 
     let selectedSquare = null;
 
-    // ELO System initialisieren
+    // ELO System via Local Storage laden
     let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
     document.getElementById('elo-value').innerText = playerElo;
 
     function updateElo(playerWon, isDraw) {
         let kFactor = 32;
-        let expectedScore = 1 / (1 + Math.pow(10, (playerElo - playerElo) / 400)); // Da KI-Elo = Spieler-Elo, immer 0.5
+        let expectedScore = 1 / (1 + Math.pow(10, (playerElo - playerElo) / 400)); 
         let actualScore = isDraw ? 0.5 : (playerWon ? 1 : 0);
         
         playerElo = Math.round(playerElo + kFactor * (actualScore - expectedScore));
@@ -21,30 +21,26 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('elo-value').innerText = playerElo;
     }
 
-    // Klick/Touch Logik für das 3D Brett
     function handleSquareSelection(square) {
         if (chess.game_over()) return;
-        if (chess.turn() !== playerColor) return; // Nicht dein Zug
+        if (chess.turn() !== playerColor) return; 
 
         if (!selectedSquare) {
-            // Erster Klick: Figur auswählen
             const piece = chess.get(square);
             if (piece && piece.color === playerColor) {
                 selectedSquare = square;
             }
         } else {
-            // Zweiter Klick: Ziel wählen & Zug versuchen
             const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
             selectedSquare = null;
 
             if (move) {
-                3dEngine.updateBoardPieces(chess.board());
+                engine3d.updateBoardPieces(chess.board());
                 updateStatus();
 
                 if (gameMode === 'p2p') {
                     p2p.sendMove(move);
                 } else if (gameMode === 'ai' && !chess.game_over()) {
-                    // KI triggern nach kurzem Delay für Realismus
                     setTimeout(triggerAIMove, 600);
                 }
             }
@@ -55,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const aiMove = ChessAI.makeAdaptiveMove(chess, playerElo);
         if (aiMove) {
             chess.move(aiMove);
-            3dEngine.updateBoardPieces(chess.board());
+            engine3d.updateBoardPieces(chess.board());
             updateStatus();
         }
     }
@@ -76,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('status-turn').innerText = text;
     }
 
-    // UI Event Listener
+    // UI Event Listener Buttons
     document.getElementById('btn-ai').addEventListener('click', () => {
         gameMode = 'ai';
         playerColor = 'w';
@@ -92,15 +88,15 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             (isClient) => {
                 playerColor = isClient ? 'b' : 'w';
-                if(isClient) {
-                     // Wenn Hoster, Kamera drehen
-                     3dEngine.camera.position.set(0, 8, -9);
-                }
                 startGame();
+                if(isClient && engine3d) {
+                     // Kamera für den schwarzen Spieler umdrehen
+                     engine3d.camera.position.set(0, 8, -9);
+                }
             },
             (incomingMove) => {
                 chess.move(incomingMove);
-                3dEngine.updateBoardPieces(chess.board());
+                engine3d.updateBoardPieces(chess.board());
                 updateStatus();
             }
         );
@@ -111,7 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!id) return alert("Bitte Code eingeben");
         gameMode = 'p2p';
         
-        // Host anfragen
         document.getElementById('btn-host').click(); 
         setTimeout(() => p2p.connectToPeer(id), 1000);
     });
@@ -120,9 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('menu').classList.add('hidden');
         document.getElementById('status-turn').classList.remove('hidden');
         
-        // 3D Engine starten
-        3dEngine = new ThreeChess('canvas-container', handleSquareSelection);
-        3dEngine.updateBoardPieces(chess.board());
+        // Initialisierung der 3D Ansicht
+        engine3d = new ThreeChess('canvas-container', handleSquareSelection);
+        engine3d.updateBoardPieces(chess.board());
         updateStatus();
     }
 });
