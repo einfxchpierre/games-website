@@ -102,16 +102,27 @@ document.addEventListener("DOMContentLoaded", () => {
         gameMode = 'p2p';
         playerColor = 'w'; 
         
-        // Wunsch-Code auslesen (wenn leer, generiert PeerJS einen Code)
         const customId = document.getElementById('custom-host-id').value.trim();
 
         p2p = new P2PManager(
             customId,
-            (id) => {
-                document.getElementById('room-id').value = id;
+            true, 
+            (shortId) => {
+                // Code im Textfeld anzeigen und Bereich sichtbar machen
+                document.getElementById('room-id').value = shortId;
                 document.getElementById('room-info').classList.remove('hidden');
+                
+                // Menü-Elemente sperren/ausblenden, damit man während des Wartens nichts falsch klickt
+                document.getElementById('btn-host').disabled = true;
+                document.getElementById('custom-host-id').disabled = true;
+                document.getElementById('btn-ai').classList.add('hidden');
+                document.getElementById('btn-join').classList.add('hidden');
+                document.getElementById('join-id').classList.add('hidden');
             },
-            () => { startGame(); },
+            () => { 
+                // DAS HIER feuert jetzt garantiert erst ab, wenn Spieler 2 da ist!
+                startGame(); 
+            },
             (incomingMove) => {
                 const move = chess.move(incomingMove);
                 if (move) {
@@ -122,11 +133,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     });
 
-    // Neu: Kopier-Button Logik
     document.getElementById('btn-copy').addEventListener('click', () => {
         const copyText = document.getElementById('room-id');
         copyText.select();
-        copyText.setSelectionRange(0, 99999); // Für Handys
+        copyText.setSelectionRange(0, 99999); 
         navigator.clipboard.writeText(copyText.value).then(() => {
             const btn = document.getElementById('btn-copy');
             btn.innerText = "Kopiert!";
@@ -145,11 +155,14 @@ document.addEventListener("DOMContentLoaded", () => {
         playerColor = 'b'; 
 
         p2p = new P2PManager(
-            '', // Gast braucht keine eigene ID
-            () => { p2p.connectToPeer(id); },
+            '', 
+            false,
+            () => { 
+                p2p.connectToPeer(id); 
+            },
             () => {
                 startGame();
-                if (engine3d) engine3d.camera.position.set(0, 9, -10); 
+                if (engine3d) engine3d.camera.position.set(0, 9, -10); // Kamera für Schwarz drehen
             },
             (incomingMove) => {
                 const move = chess.move(incomingMove);
