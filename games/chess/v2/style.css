@@ -11,7 +11,7 @@ body, html {
     overflow: hidden;
     width: 100%;
     height: 100%;
-    background-color: #1a1a1a;
+    background-color: #141414;
     color: #fff;
 }
 
@@ -100,9 +100,34 @@ input[type="text"] {
     font-size: 1rem;
 }
 
+/* Friedhof für geschlagene Figuren */
+#graveyard-white, #graveyard-black {
+    position: absolute;
+    top: 100px;
+    width: 75px;
+    background: rgba(0,0,0,0.6);
+    padding: 12px 6px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    font-size: 1.1rem;
+    z-index: 15;
+    pointer-events: none;
+}
+#graveyard-white { left: 20px; border-left: 3px solid #fff; }
+#graveyard-black { right: 20px; border-right: 3px solid #333; }
+
+#graveyard-white span, #graveyard-black span {
+    display: block;
+    white-space: nowrap;
+}
+
 .hidden { display: none !important; }
 
 @media (max-width: 600px) {
     #menu { width: 95%; padding: 20px 15px; }
     button { padding: 14px; }
+    #graveyard-white, #graveyard-black { top: auto; bottom: 100px; flex-direction: row; width: auto; max-width: 45%; }
 }
