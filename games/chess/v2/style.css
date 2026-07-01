@@ -1,0 +1,102 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body, html {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+
+#ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Klicks gehen durch das Overlay ans 3D-Brett */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+#elo-display, #status-turn, #menu {
+    pointer-events: auto; /* Aktiviert Klicks für UI Elemente */
+    background: rgba(0, 0, 0, 0.85);
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+}
+
+#elo-display {
+    align-self: flex-start;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-left: 4px solid #4caf50;
+}
+
+#status-turn {
+    align-self: center;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+#menu {
+    align-self: center;
+    margin-auto: auto;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+h2 { margin-bottom: 10px; color: #f0d9b5; }
+hr { border: 0; height: 1px; background: #444; margin: 5px 0; }
+
+button {
+    padding: 12px;
+    background: #f0d9b5;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+}
+button:hover { background: #b59d7c; }
+
+input[type="text"] {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #222;
+    color: #fff;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.hidden { display: none !important; }
+
+/* Optimierung für Smartphones */
+@media (max-width: 600px) {
+    #menu { width: 95%; padding: 20px 15px; }
+    button { padding: 14px; } /* Größere Hitboxen für Finger */
+}
