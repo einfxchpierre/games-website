@@ -57,6 +57,13 @@ const GAMES_DATA = [
     btn_color: "#fffff"
 },
 {
+    id: "chess_multiplayer",
+    game_name: "Schach Multiplayer (KI funktioniert noch nicht)",
+    path: "games/chess/v3/index.html",
+    icon: "pictures/icons/chess.png",
+    btn_color: "#63728"
+},
+{
     id: "runner",
     game_name: "Neon Runner",
     path: "games/runner/index.html",
