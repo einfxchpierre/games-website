@@ -3,7 +3,9 @@ class ThreeChess {
         this.container = document.getElementById(containerId);
         this.onSquareSelect = onSquareSelect;
         this.piecesGroup = new THREE.Group();
-        this.selectedSquare = null;
+        this.boardTiles = []; // Speichert Referenzen der Kacheln für farbliche Markierungen
+        this.lastHighlightedTile = null;
+        this.lastOriginalColor = null;
 
         this.initThree();
         this.createBoard();
@@ -42,15 +44,38 @@ class ThreeChess {
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const isLight = (r + c) % 2 === 0;
+                const tileColor = isLight ? 0xf0d9b5 : 0xb58863;
                 const mat = new THREE.MeshStandardMaterial({
-                    color: isLight ? 0xf0d9b5 : 0xb58863,
+                    color: tileColor,
                     roughness: 0.4
                 });
                 const tile = new THREE.Mesh(boardGeo, mat);
                 tile.position.set(c - 3.5, 0, r - 3.5);
-                tile.userData = { square: String.fromCharCode(97 + c) + (8 - r) };
+                
+                const squareName = String.fromCharCode(97 + c) + (8 - r);
+                tile.userData = { square: squareName, originalColor: tileColor };
+                
+                this.boardTiles.push(tile);
                 this.scene.add(tile);
             }
+        }
+    }
+
+    // Markiert das ausgewählte Feld hellblau
+    highlightSquare(squareName) {
+        this.clearHighlight();
+        const tile = this.boardTiles.find(t => t.userData.square === squareName);
+        if (tile) {
+            this.lastHighlightedTile = tile;
+            tile.material.color.setHex(0x3498db); // Schönes Hellblau
+        }
+    }
+
+    // Setzt die Farbe der Kachel wieder zurück
+    clearHighlight() {
+        if (this.lastHighlightedTile) {
+            this.lastHighlightedTile.material.color.setHex(this.lastHighlightedTile.userData.originalColor);
+            this.lastHighlightedTile = null;
         }
     }
 
@@ -109,7 +134,6 @@ class ThreeChess {
         const mouse = new THREE.Vector2();
 
         const handleSelect = (event) => {
-            // Ignoriere Klicks, wenn sie direkt auf aktiven UI-Menüs landen
             if (event.target.closest('#elo-display') || 
                 event.target.closest('#menu') || 
                 event.target.closest('#status-turn')) {
