@@ -26,7 +26,7 @@ class ThreeChess {
 
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
-        this.controls.maxPolarAngle = Math.PI / 2 - 0.05; // Kamera nicht unter den Boden bewegen
+        this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
 
         this.scene.add(this.piecesGroup);
 
@@ -47,7 +47,6 @@ class ThreeChess {
                     roughness: 0.4
                 });
                 const tile = new THREE.Mesh(boardGeo, mat);
-                // Koordinaten zentrieren (-3.5 bis +3.5)
                 tile.position.set(c - 3.5, 0, r - 3.5);
                 tile.userData = { square: String.fromCharCode(97 + c) + (8 - r) };
                 this.scene.add(tile);
@@ -65,37 +64,34 @@ class ThreeChess {
         this.scene.add(dirLight);
     }
 
-    // Erzeugt geometrische Ersatzformen für Figuren ohne externe Assets laden zu müssen
     createPieceMesh(type, color) {
         let geo;
         const mat = new THREE.MeshStandardMaterial({
-            color: color === 'w' ? 0xffffff : 0x333333,
+            color: color === 'w' ? 0xffffff : 0x222222,
             roughness: 0.2,
             metalness: 0.1
         });
 
         switch(type) {
-            case 'p': geo = new THREE.CylinderGeometry(0.15, 0.2, 0.4, 12); break; // Bauer
-            case 'r': geo = new THREE.BoxGeometry(0.3, 0.6, 0.3); break; // Turm
-            case 'n': geo = new THREE.BoxGeometry(0.25, 0.5, 0.4); break; // Springer
-            case 'b': geo = new THREE.ConeGeometry(0.2, 0.7, 12); break; // Läufer
-            case 'q': geo = new THREE.CylinderGeometry(0.1, 0.3, 0.8, 16); break; // Königin
-            case 'k': geo = new THREE.CylinderGeometry(0.2, 0.3, 0.9, 16); break; // König
+            case 'p': geo = new THREE.CylinderGeometry(0.15, 0.2, 0.4, 12); break;
+            case 'r': geo = new THREE.BoxGeometry(0.3, 0.6, 0.3); break;
+            case 'n': geo = new THREE.BoxGeometry(0.25, 0.5, 0.4); break;
+            case 'b': geo = new THREE.ConeGeometry(0.2, 0.7, 12); break;
+            case 'q': geo = new THREE.CylinderGeometry(0.1, 0.3, 0.8, 16); break;
+            case 'k': geo = new THREE.CylinderGeometry(0.2, 0.3, 0.9, 16); break;
         }
         
         const mesh = new THREE.Mesh(geo, mat);
         mesh.castShadow = true;
-        mesh.position.y = 0.3; // Auf das Brett stellen
+        mesh.position.y = 0.3;
         return mesh;
     }
 
     updateBoardPieces(boardData) {
-        // Alte Figuren löschen
         while(this.piecesGroup.children.length > 0){
             this.piecesGroup.remove(this.piecesGroup.children[0]);
         }
 
-        // Neue Figuren setzen
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const piece = boardData[r][c];
@@ -113,9 +109,23 @@ class ThreeChess {
         const mouse = new THREE.Vector2();
 
         const handleSelect = (event) => {
-            // Erkennt sowohl Touch als auch Maus-Klick-Koordinaten
-            const clientX = event.clientX || event.touches[0].clientX;
-            const clientY = event.clientY || event.touches[0].clientY;
+            // Ignoriere Klicks, wenn sie direkt auf aktiven UI-Menüs landen
+            if (event.target.closest('#elo-display') || 
+                event.target.closest('#menu') || 
+                event.target.closest('#status-turn')) {
+                return;
+            }
+
+            let clientX = event.clientX;
+            let clientY = event.clientY;
+
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else if (event.changedTouches && event.changedTouches.length > 0) {
+                clientX = event.changedTouches[0].clientX;
+                clientY = event.changedTouches[0].clientY;
+            }
 
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clientY / window.innerHeight) * 2 + 1;
@@ -123,14 +133,14 @@ class ThreeChess {
             raycaster.setFromCamera(mouse, this.camera);
             const intersects = raycaster.intersectObjects(this.scene.children);
 
-            // Finde das angeklickte Feld auf dem Brett
             const clickedTile = intersects.find(i => i.object.userData && i.object.userData.square);
             if (clickedTile) {
                 this.onSquareSelect(clickedTile.object.userData.square);
             }
         };
 
-        this.renderer.domElement.addEventListener('pointerdown', handleSelect);
+        window.addEventListener('pointerdown', handleSelect, { passive: true });
+        window.addEventListener('touchstart', handleSelect, { passive: true });
     }
 
     animate() {
