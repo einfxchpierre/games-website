@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const chess = new Chess();
+    // Falls neuere Versionen geladen werden, sichert dies die Instanziierung
+    const chess = typeof Chess === 'function' ? new Chess() : new window.Chess.Chess();
     let engine3d = null; 
     let p2p = null;
     
@@ -7,13 +8,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let gameMode = 'ai'; 
     let selectedSquare = null;
 
-    // ELO System via Local Storage laden
     let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
     document.getElementById('elo-value').innerText = playerElo;
 
     function updateElo(playerWon, isDraw) {
         let kFactor = 32;
-        let expectedScore = 1 / (1 + Math.pow(10, (playerElo - playerElo) / 400)); 
+        let expectedScore = 0.5; 
         let actualScore = isDraw ? 0.5 : (playerWon ? 1 : 0);
         
         playerElo = Math.round(playerElo + kFactor * (actualScore - expectedScore));
@@ -23,43 +23,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function handleSquareSelection(square) {
         if (chess.game_over()) return;
-        if (chess.turn() !== playerColor) return; // Nicht dein Zug!
+        if (chess.turn() !== playerColor) return; 
 
         if (!selectedSquare) {
-            // 1. Klick: Figur auswählen
             const piece = chess.get(square);
-            // Nur auswählen, wenn eine eigene Figur auf dem Feld steht
             if (piece && piece.color === playerColor) {
                 selectedSquare = square;
-                if (engine3d) engine3d.highlightSquare(square); // Optisches Feedback
+                if (engine3d) engine3d.highlightSquare(square); 
             }
         } else {
-            // 2. Klick: Zug ausführen auf Zielquadrat
             const fromSquare = selectedSquare;
             const toSquare = square;
             selectedSquare = null;
-            if (engine3d) engine3d.clearHighlight(); // Highlight entfernen
+            if (engine3d) engine3d.clearHighlight(); 
 
-            // Zug-Validierung gegen chess.js ausführen
-            const move = chess.move({ 
-                from: fromSquare, 
-                to: toSquare, 
-                promotion: 'q' // Automatische Umwandlung in Dame bei Bauern auf der Grundlinie
-            });
+            // Bereite ein sauberes Move-Objekt vor
+            const moveAttempt = { from: fromSquare, to: toSquare, promotion: 'q' };
+            const move = chess.move(moveAttempt);
 
             if (move) {
-                // Zug war gültig -> 3D Brett neu zeichnen
-                engine3d.updateBoardPieces(chess.board());
+                // Gültiger Zug ausgeführt
+                engine3d.updateBoardPieces(chess.board(), { from: fromSquare, to: toSquare });
                 updateStatus();
 
-                if (gameMode === 'p2p') {
-                    p2p.sendMove(move);
+                if (gameMode === 'p2p' && p2p) {
+                    // Sende exaktes Zug-Objekt statt Roh-Daten
+                    p2p.sendMove({ from: fromSquare, to: toSquare });
                 } else if (gameMode === 'ai' && !chess.game_over()) {
-                    setTimeout(triggerAIMove, 600);
+                    setTimeout(triggerAIMove, 400);
                 }
             } else {
-                // Falls der Zug illegal war, aber das neue Feld eine eigene Figur ist,
-                // wählen wir diese stattdessen direkt als neue Auswahl aus
+                // Klick-Korrektur: Direkt andere eigene Figur wählen
                 const piece = chess.get(square);
                 if (piece && piece.color === playerColor) {
                     selectedSquare = square;
@@ -72,9 +66,11 @@ document.addEventListener("DOMContentLoaded", () => {
     function triggerAIMove() {
         const aiMove = ChessAI.makeAdaptiveMove(chess, playerElo);
         if (aiMove) {
-            chess.move(aiMove);
-            engine3d.updateBoardPieces(chess.board());
-            updateStatus();
+            const move = chess.move(aiMove);
+            if (move) {
+                engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                updateStatus();
+            }
         }
     }
 
@@ -84,8 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (chess.in_checkmate()) {
             text = "Schachmatt!";
-            const playerWon = chess.turn() !== playerColor;
-            updateElo(playerWon, false);
+            updateElo(chess.turn() !== playerColor, false);
         } else if (chess.in_draw()) {
             text = "Unentschieden!";
             updateElo(false, true);
@@ -94,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('status-turn').innerText = text;
     }
 
-    // UI Event Listener Buttons
+    // UI Event Listeners
     document.getElementById('btn-ai').addEventListener('click', () => {
         gameMode = 'ai';
         playerColor = 'w';
@@ -103,33 +98,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('btn-host').addEventListener('click', () => {
         gameMode = 'p2p';
+        playerColor = 'w'; // Hoster fängt immer als Weiß an
         p2p = new P2PManager(
             (id) => {
                 document.getElementById('room-id').value = id;
                 document.getElementById('room-info').classList.remove('hidden');
             },
             (isClient) => {
-                playerColor = isClient ? 'b' : 'w';
+                // Wird gefeuert sobald die Verbindung zustande kommt
                 startGame();
-                if(isClient && engine3d) {
-                     engine3d.camera.position.set(0, 8, -9);
-                }
             },
             (incomingMove) => {
-                chess.move(incomingMove);
-                engine3d.updateBoardPieces(chess.board());
-                updateStatus();
+                const move = chess.move(incomingMove);
+                if (move) {
+                    engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                    updateStatus();
+                }
             }
         );
     });
 
     document.getElementById('btn-join').addEventListener('click', () => {
-        const id = document.getElementById('join-id').value;
-        if (!id) return alert("Bitte Code eingeben");
+        const id = document.getElementById('join-id').value.trim();
+        if (!id) return alert("Bitte gültigen Code eingeben");
         gameMode = 'p2p';
-        
-        document.getElementById('btn-host').click(); 
-        setTimeout(() => p2p.connectToPeer(id), 1000);
+        playerColor = 'b'; // Gast spielt immer Schwarz
+
+        p2p = new P2PManager(
+            (myId) => {
+                // Sobald Peer geöffnet, direkt zur Ziel-ID verbinden!
+                p2p.connectToPeer(id);
+            },
+            (isClient) => {
+                startGame();
+                if (engine3d) {
+                    // Kamera um 180 Grad drehen für die schwarze Perspektive
+                    engine3d.camera.position.set(0, 7, -8);
+                }
+            },
+            (incomingMove) => {
+                const move = chess.move(incomingMove);
+                if (move) {
+                    engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                    updateStatus();
+                }
+            }
+        );
     });
 
     function startGame() {
