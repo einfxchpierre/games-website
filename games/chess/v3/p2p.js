@@ -1,23 +1,18 @@
 class P2PManager {
-    // Erwartet jetzt zusätzlich ein "isHost" (true/false) zur sauberen ID-Trennung
     constructor(customId, isHost, onReady, onConnect, onMoveReceived) {
-        const APP_PREFIX = "phoenixschach-"; // Schützt kurze Codes vor globalen Kollisionen
+        const APP_PREFIX = "phoenixschach-"; 
         this.conn = null;
         this.onReady = onReady;
         this.onConnect = onConnect;
         this.onMoveReceived = onMoveReceived;
 
         if (isHost) {
-            // Hoster: Nutzen den Wunsch-Code oder eine kurze 4-stellige Zufallszahl
+            // Hoster: Wunsch-Code oder eine kurze 4-stellige Zufallszahl
             let shortId = customId ? customId.trim() : Math.floor(1000 + Math.random() * 9000).toString();
-            
-            // Registriere die ID im Hintergrund mit Prefix
             this.peer = new Peer(APP_PREFIX + shortId);
-            
-            // Gib dem Spiel aber nur die kurze ID (z.B. "123") für den Bildschirm zurück
             this.peer.on('open', () => this.onReady(shortId));
         } else {
-            // Gast: Braucht keinen festen Namen, bekommt eine freie Standard-ID von PeerJS
+            // Gast: Braucht keinen festen Namen
             this.peer = new Peer();
             this.peer.on('open', () => this.onReady());
         }
@@ -26,12 +21,17 @@ class P2PManager {
         this.peer.on('connection', (connection) => {
             this.conn = connection;
             this.setupConnection();
-            this.onConnect(false); // false = Hoster-Rolle
+            
+            // FEHLERBEHEBUNG: Erst wenn der Datenkanal wirklich BEREIT und OFFEN ist,
+            // wird das Spiel gestartet!
+            this.conn.on('open', () => {
+                this.onConnect(false); // false = Hoster-Rolle
+            });
         });
 
         this.peer.on('error', (err) => {
             if (err.type === 'unavailable-id') {
-                alert("Dieser Kurz-Code ist im Moment leider schon vergeben. Bitte nimm einen anderen (z.B. 1234)!");
+                alert("Dieser Kurz-Code ist im Moment leider schon vergeben. Bitte nimm einen anderen!");
             } else {
                 console.error("PeerJS Verbindungsfehler:", err);
             }
@@ -56,6 +56,12 @@ class P2PManager {
             if (data && data.type === 'MOVE') {
                 this.onMoveReceived(data.move);
             }
+        });
+
+        // Automatisch neu laden, wenn einer die Verbindung abbricht
+        this.conn.on('close', () => {
+            alert("Verbindung zum Mitspieler verloren!");
+            location.reload();
         });
     }
 
