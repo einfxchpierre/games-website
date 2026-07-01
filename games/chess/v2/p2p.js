@@ -8,21 +8,19 @@ class P2PManager {
 
         this.peer.on('open', (id) => this.onReady(id));
         
-        // Listener für den Hoster (empfängt eingehenden Anruf vom Gast)
         this.peer.on('connection', (connection) => {
             this.conn = connection;
             this.setupConnection();
-            this.onConnect(false); // false = Ich bin Hoster (Weiß)
+            this.onConnect(false); // false = Ich bin Hoster
         });
     }
 
-    // Funktion für den Beitretenden (Gast)
     connectToPeer(targetId) {
         this.conn = this.peer.connect(targetId);
         this.setupConnection();
         
         this.conn.on('open', () => {
-            this.onConnect(true); // true = Ich bin der Gast (Schwarz)
+            this.onConnect(true); // true = Ich bin Gast
         });
     }
 
@@ -32,8 +30,7 @@ class P2PManager {
                 this.onMoveReceived(data.move);
             }
         });
-
-        this.conn.on('error', (err) => console.error("P2P Verbindungsfehler:", err));
+        this.conn.on('error', (err) => console.error("Verbindung abgebrochen oder Fehler:", err));
     }
 
     sendMove(moveData) {
