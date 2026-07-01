@@ -56,6 +56,13 @@ const GAMES_DATA = [
     icon: "pictures/icons/chess.png",
     btn_color: "#fffff"
 },
+{
+    id: "runner",
+    game_name: "Neon Runner",
+    path: "games/runner/index.html",
+    icon: "pictures/icons/runner.png",
+    btn_color: "#72828"
+},
     /*{
         id: "beispiel",
         game_name: "Beispiel",
