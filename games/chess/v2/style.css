@@ -3,7 +3,7 @@
     margin: 0;
     padding: 0;
     user-select: none;
-    touch-action: none; /* Verhindert standardmäßiges Zoomen/Scrollen auf dem Handy */
+    touch-action: none; /* Verhindert ungewolltes Scrollen/Zoomen auf Handys */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -22,7 +22,7 @@ body, html {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1; /* Das 3D Brett liegt ganz unten */
+    z-index: 1; /* Liegt ganz unten */
 }
 
 #ui-container {
@@ -31,16 +31,16 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* Klicks gehen standardmäßig durch die leeren Stellen durch */
+    pointer-events: none; /* Klicks fallen durch leere Bereiche aufs 3D-Brett */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 20px;
-    z-index: 10; /* Das UI liegt über dem 3D Brett */
+    z-index: 10; /* Liegt über dem Canvas */
 }
 
 #elo-display, #status-turn, #menu {
-    pointer-events: auto; /* Aktiviert Klicks NUR für die Boxen und Buttons selbst */
+    pointer-events: auto; /* Aktiviert Interaktion NUR für diese UI-Elemente */
     background: rgba(0, 0, 0, 0.85);
     padding: 15px 25px;
     border-radius: 12px;
