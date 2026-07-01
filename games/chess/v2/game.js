@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Falls neuere Versionen geladen werden, sichert dies die Instanziierung
+    // Sichere Instanziierung für jede Schach-Bibliotheksversion
     const chess = typeof Chess === 'function' ? new Chess() : new window.Chess.Chess();
     let engine3d = null; 
     let p2p = null;
@@ -8,28 +8,63 @@ document.addEventListener("DOMContentLoaded", () => {
     let gameMode = 'ai'; 
     let selectedSquare = null;
 
+    // Unicode Symbole für den Bildschirm-Friedhof
+    const pieceSymbols = { p: '♙', r: '♖', n: '♘', b: '♗', q: '♕', k: '♔' };
+
     let playerElo = parseInt(localStorage.getItem('chess_elo')) || 1200;
     document.getElementById('elo-value').innerText = playerElo;
 
     function updateElo(playerWon, isDraw) {
         let kFactor = 32;
-        let expectedScore = 0.5; 
-        let actualScore = isDraw ? 0.5 : (playerWon ? 1 : 0);
-        
-        playerElo = Math.round(playerElo + kFactor * (actualScore - expectedScore));
+        playerElo = Math.round(playerElo + kFactor * ((isDraw ? 0.5 : (playerWon ? 1 : 0)) - 0.5));
         localStorage.setItem('chess_elo', playerElo);
         document.getElementById('elo-value').innerText = playerElo;
     }
 
+    // Vergleicht den aktuellen Zustand mit der Grundaufstellung und listet geschlagene Figuren auf
+    function updateGraveyard() {
+        const startCounts = { p: 8, r: 2, n: 2, b: 2, q: 1, k: 1 };
+        const currentWhite = { p:0, r:0, n:0, b:0, q:0, k:0 };
+        const currentBlack = { p:0, r:0, n:0, b:0, q:0, k:0 };
+
+        chess.board().forEach(row => {
+            row.forEach(piece => {
+                if (piece) {
+                    if (piece.color === 'w') currentWhite[piece.type]++;
+                    if (piece.color === 'b') currentBlack[piece.type]++;
+                }
+            });
+        });
+
+        let whiteDeadHTML = "";
+        let blackDeadHTML = "";
+
+        for (let type in startCounts) {
+            let deadWhiteCount = startCounts[type] - currentWhite[type];
+            let deadBlackCount = startCounts[type] - currentBlack[type];
+
+            if (deadWhiteCount > 0) whiteDeadHTML += `<span>${pieceSymbols[type]} x${deadWhiteCount}</span>`;
+            if (deadBlackCount > 0) blackDeadHTML += `<span style="color:#aaa">${pieceSymbols[type]} x${deadBlackCount}</span>`;
+        }
+
+        document.getElementById('graveyard-white').innerHTML = whiteDeadHTML;
+        document.getElementById('graveyard-black').innerHTML = blackDeadHTML;
+    }
+
     function handleSquareSelection(square) {
         if (chess.game_over()) return;
-        if (chess.turn() !== playerColor) return; 
+        if (chess.turn() !== playerColor) return; // Blockiert Aktionen, wenn du nicht dran bist
 
         if (!selectedSquare) {
             const piece = chess.get(square);
             if (piece && piece.color === playerColor) {
                 selectedSquare = square;
-                if (engine3d) engine3d.highlightSquare(square); 
+                if (engine3d) {
+                    engine3d.highlightSquare(square);
+                    // Vorschau berechnen und absenden
+                    let moves = chess.moves({ square: square, verbose: true }).map(m => m.to);
+                    engine3d.highlightPossibleMoves(moves);
+                }
             }
         } else {
             const fromSquare = selectedSquare;
@@ -37,46 +72,51 @@ document.addEventListener("DOMContentLoaded", () => {
             selectedSquare = null;
             if (engine3d) engine3d.clearHighlight(); 
 
-            // Bereite ein sauberes Move-Objekt vor
-            const moveAttempt = { from: fromSquare, to: toSquare, promotion: 'q' };
-            const move = chess.move(moveAttempt);
+            const move = chess.move({ from: fromSquare, to: toSquare, promotion: 'q' });
 
             if (move) {
-                // Gültiger Zug ausgeführt
                 engine3d.updateBoardPieces(chess.board(), { from: fromSquare, to: toSquare });
+                updateGraveyard();
                 updateStatus();
 
                 if (gameMode === 'p2p' && p2p) {
-                    // Sende exaktes Zug-Objekt statt Roh-Daten
                     p2p.sendMove({ from: fromSquare, to: toSquare });
                 } else if (gameMode === 'ai' && !chess.game_over()) {
                     setTimeout(triggerAIMove, 400);
                 }
             } else {
-                // Klick-Korrektur: Direkt andere eigene Figur wählen
+                // Klick auf ungültiges Feld, aber dort steht eine andere eigene Figur -> umwählen
                 const piece = chess.get(square);
                 if (piece && piece.color === playerColor) {
                     selectedSquare = square;
-                    if (engine3d) engine3d.highlightSquare(square);
+                    if (engine3d) {
+                        engine3d.highlightSquare(square);
+                        let moves = chess.moves({ square: square, verbose: true }).map(m => m.to);
+                        engine3d.highlightPossibleMoves(moves);
+                    }
                 }
             }
         }
     }
 
     function triggerAIMove() {
-        const aiMove = ChessAI.makeAdaptiveMove(chess, playerElo);
-        if (aiMove) {
-            const move = chess.move(aiMove);
-            if (move) {
-                engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
-                updateStatus();
+        if (typeof ChessAI !== 'undefined') {
+            const aiMove = ChessAI.makeAdaptiveMove(chess, playerElo);
+            if (aiMove) {
+                const move = chess.move(aiMove);
+                if (move) {
+                    engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                    updateGraveyard();
+                    updateStatus();
+                }
             }
         }
     }
 
     function updateStatus() {
-        const turn = chess.turn() === 'w' ? 'Weiß' : 'Schwarz';
-        let text = `${turn} ist am Zug.`;
+        const turnText = chess.turn() === 'w' ? 'Weiß' : 'Schwarz';
+        const colorText = playerColor === 'w' ? 'Weiß' : 'Schwarz';
+        let text = `Du bist ${colorText}. — ${turnText} ist am Zug.`;
 
         if (chess.in_checkmate()) {
             text = "Schachmatt!";
@@ -89,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('status-turn').innerText = text;
     }
 
-    // UI Event Listeners
     document.getElementById('btn-ai').addEventListener('click', () => {
         gameMode = 'ai';
         playerColor = 'w';
@@ -98,20 +137,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('btn-host').addEventListener('click', () => {
         gameMode = 'p2p';
-        playerColor = 'w'; // Hoster fängt immer als Weiß an
+        playerColor = 'w'; // Hoster startet als Weiß
         p2p = new P2PManager(
             (id) => {
                 document.getElementById('room-id').value = id;
                 document.getElementById('room-info').classList.remove('hidden');
             },
-            (isClient) => {
-                // Wird gefeuert sobald die Verbindung zustande kommt
-                startGame();
-            },
+            () => { startGame(); },
             (incomingMove) => {
                 const move = chess.move(incomingMove);
                 if (move) {
                     engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                    updateGraveyard();
                     updateStatus();
                 }
             }
@@ -122,24 +159,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const id = document.getElementById('join-id').value.trim();
         if (!id) return alert("Bitte gültigen Code eingeben");
         gameMode = 'p2p';
-        playerColor = 'b'; // Gast spielt immer Schwarz
+        playerColor = 'b'; // Beitreter ist Schwarz
 
         p2p = new P2PManager(
-            (myId) => {
-                // Sobald Peer geöffnet, direkt zur Ziel-ID verbinden!
-                p2p.connectToPeer(id);
-            },
-            (isClient) => {
+            () => { p2p.connectToPeer(id); },
+            () => {
                 startGame();
-                if (engine3d) {
-                    // Kamera um 180 Grad drehen für die schwarze Perspektive
-                    engine3d.camera.position.set(0, 7, -8);
-                }
+                if (engine3d) engine3d.camera.position.set(0, 7, -8); // Spiegelt Kamera für Schwarz
             },
             (incomingMove) => {
                 const move = chess.move(incomingMove);
                 if (move) {
                     engine3d.updateBoardPieces(chess.board(), { from: move.from, to: move.to });
+                    updateGraveyard();
                     updateStatus();
                 }
             }
@@ -152,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         engine3d = new ThreeChess('canvas-container', handleSquareSelection);
         engine3d.updateBoardPieces(chess.board());
+        updateGraveyard();
         updateStatus();
     }
 });
