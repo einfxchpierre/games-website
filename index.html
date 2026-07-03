@@ -22,13 +22,45 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--text-white);
+        body, html {
+            width: 100%;
+            height: 100%;
             margin: 0;
             padding: 0;
+            background-color: var(--dark-bg);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-white);
+            /* Standardmäßig fixiert, solange das Video läuft */
+            overflow: hidden; 
+            position: fixed;
+        }
+
+        /* Umschließt den gesamten originalen Content */
+        #contentPage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             overflow-x: hidden;
+            overflow-y: auto;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease, visibility 1s ease;
+            z-index: 10;
+        }
+
+        /* Aktiviert, wenn das Video vorbei ist */
+        #contentPage.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Erzwingt die Direktanzeige beim Refresh ohne Video */
+        .instant-show {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transition: none !important;
         }
 
         /* Container für zentrierten Inhalt */
@@ -195,19 +227,45 @@
             }
         }
     </style>
+
+    <script>
+        // Blocker-Logik: Prüft sofort beim Laden, ob das Video bereits lief
+        if (sessionStorage.getItem('phoenixVideoPlayed') === 'true') {
+            // Verhindert das Rendern der Videoelemente, falls geladen
+            const antiVideoStyle = document.createElement('style');
+            antiVideoStyle.textContent = `
+                .video-overlay-layer, .video-player-container { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+            `;
+            document.head.appendChild(antiVideoStyle);
+
+            // Zeigt den Game Hub sofort und ohne Animation
+            document.addEventListener("DOMContentLoaded", () => {
+                const contentPage = document.getElementById('contentPage');
+                if (contentPage) {
+                    contentPage.classList.add('instant-show');
+                }
+                // Scrollen und Normalzustand des Bodys wiederherstellen
+                document.body.style.position = 'relative';
+                document.body.style.overflow = 'auto';
+                document.documentElement.style.overflow = 'auto';
+            });
+        }
+    </script>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1><span>GAME</span>HUB</h1>
-        <div class="search-container">
-            <input type="text" id="searchBar" placeholder="Spiel suchen..." onkeyup="filterGames()">
-        </div>
-    </header>
+<div id="contentPage">
+    <div class="container">
+        <header>
+            <h1><span>GAME</span>HUB</h1>
+            <div class="search-container">
+                <input type="text" id="searchBar" placeholder="Spiel suchen..." onkeyup="filterGames()">
+            </div>
+        </header>
 
-    <main class="game-grid" id="gameGrid">
-    </main>
+        <main class="game-grid" id="gameGrid">
+        </main>
+    </div>
 </div>
 
 <script src="games.js"></script>
@@ -255,6 +313,22 @@
                 .catch(err => console.log('SW Fehler', err));
         });
     }
+</script>
+
+<script src="https://phoenixmagie.vercel.app/beta/phoenix.js"></script>
+
+<script>
+    // Klinkt sich in das Video-Ende ein, um die Session-Variable zu setzen
+    document.addEventListener("DOMContentLoaded", () => {
+        const videoLandscape = document.getElementById('bgVideoLandscape');
+        if (videoLandscape) {
+            const originalEnd = videoLandscape.onended;
+            videoLandscape.onended = function() {
+                sessionStorage.setItem('phoenixVideoPlayed', 'true');
+                if (originalEnd) originalEnd();
+            };
+        }
+    });
 </script>
 
 </body>
