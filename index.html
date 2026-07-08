@@ -30,12 +30,10 @@
             background-color: var(--dark-bg);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: var(--text-white);
-            /* Standardmäßig fixiert, solange das Video läuft */
             overflow: hidden; 
             position: fixed;
         }
 
-        /* Umschließt den gesamten originalen Content */
         #contentPage {
             position: absolute;
             top: 0;
@@ -50,20 +48,17 @@
             z-index: 10;
         }
 
-        /* Aktiviert, wenn das Video vorbei ist */
         #contentPage.active {
             opacity: 1;
             visibility: visible;
         }
 
-        /* Erzwingt die Direktanzeige beim Refresh ohne Video */
         .instant-show {
             opacity: 1 !important;
             visibility: visible !important;
             transition: none !important;
         }
 
-        /* Container für zentrierten Inhalt */
         .container {
             width: 100%;
             max-width: 1400px;
@@ -71,7 +66,6 @@
             padding: 20px;
         }
 
-        /* Header Bereich */
         header {
             text-align: center;
             padding: 40px 10px;
@@ -88,7 +82,6 @@
             color: var(--main-red);
         }
 
-        /* Suchleiste */
         .search-container {
             margin-bottom: 40px;
         }
@@ -112,14 +105,12 @@
             transform: scale(1.02);
         }
 
-        /* Game Grid */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 25px;
         }
 
-        /* Game Card */
         .game-card {
             background: var(--card-bg);
             border-radius: 24px;
@@ -181,6 +172,30 @@
             font-weight: 500;
         }
 
+        /* --- STYLING FÜR DEN SKIP-BUTTON --- */
+        #skipVideoButton {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: var(--main-red);
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 99999; /* Über dem Video Layer */
+            box-shadow: 0 4px 20px rgba(230, 0, 0, 0.4);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        #skipVideoButton:active {
+            transform: scale(0.95);
+        }
+
         @media (max-width: 992px) {
             .game-grid {
                 grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -225,26 +240,30 @@
                 font-size: 0.75rem;
                 margin-top: 8px;
             }
+
+            #skipVideoButton {
+                bottom: 15px;
+                right: 15px;
+                padding: 10px 20px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 
     <script>
-        // Blocker-Logik: Prüft sofort beim Laden, ob das Video bereits lief
+        // Blocker-Logik erweitertet: Versteckt auch den Skip-Button, wenn das Video schon lief
         if (sessionStorage.getItem('phoenixVideoPlayed') === 'true') {
-            // Verhindert das Rendern der Videoelemente, falls geladen
             const antiVideoStyle = document.createElement('style');
             antiVideoStyle.textContent = `
-                .video-overlay-layer, .video-player-container { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+                .video-overlay-layer, .video-player-container, #skipVideoButton { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
             `;
             document.head.appendChild(antiVideoStyle);
 
-            // Zeigt den Game Hub sofort und ohne Animation
             document.addEventListener("DOMContentLoaded", () => {
                 const contentPage = document.getElementById('contentPage');
                 if (contentPage) {
                     contentPage.classList.add('instant-show');
                 }
-                // Scrollen und Normalzustand des Bodys wiederherstellen
                 document.body.style.position = 'relative';
                 document.body.style.overflow = 'auto';
                 document.documentElement.style.overflow = 'auto';
@@ -253,6 +272,8 @@
     </script>
 </head>
 <body>
+
+<button id="skipVideoButton" onclick="skipVideo()">Video überspringen</button>
 
 <div id="contentPage">
     <div class="container">
@@ -271,6 +292,13 @@
 <script src="games.js"></script>
 
 <script>
+    // Funktion zum Überspringen des Videos bei Button-Klick
+    function skipVideo() {
+        sessionStorage.setItem('phoenixVideoPlayed', 'true');
+        // Lädt die Seite blitzschnell neu; die obere Blocker-Logik greift sofort und zeigt direkt den Hub
+        location.reload(); 
+    }
+
     function renderHub(filterText = "") {
         const grid = document.getElementById('gameGrid');
         grid.innerHTML = "";
@@ -282,8 +310,6 @@
         );
 
         filtered.forEach(game => {
-            const highscore = allData[game.id]?.highscore || 0;
-
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
@@ -318,13 +344,15 @@
 <script src="https://phoenixmagie.vercel.app/beta/phoenix.js"></script>
 
 <script>
-    // Klinkt sich in das Video-Ende ein, um die Session-Variable zu setzen
     document.addEventListener("DOMContentLoaded", () => {
         const videoLandscape = document.getElementById('bgVideoLandscape');
         if (videoLandscape) {
             const originalEnd = videoLandscape.onended;
             videoLandscape.onended = function() {
                 sessionStorage.setItem('phoenixVideoPlayed', 'true');
+                // Blendet den Button aus, wenn das Video von alleine endet
+                const btn = document.getElementById('skipVideoButton');
+                if(btn) btn.style.display = 'none';
                 if (originalEnd) originalEnd();
             };
         }
