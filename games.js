@@ -70,6 +70,13 @@ const GAMES_DATA = [
     icon: "pictures/icons/runner.png",
     btn_color: "#72828"
 },
+{
+    id: "drawacircle",
+    game_name: "Draw a Circle",
+    path: "games/drawacircle/index.html",
+    icon: "pictures/icons/kreis.png",
+    btn_color: "#73819"
+}
     /*{
         id: "beispiel",
         game_name: "Beispiel",
