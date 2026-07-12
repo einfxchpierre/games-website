@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Perfekter Kreis Spiel</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-color: #1a1a1e;
+            --text-color: #ffffff;
+            --accent-color: #3b82f6;
+            --color-red: #ef4444;
+            --color-yellow: #eab308;
+            --color-green: #22c55e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        header {
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .back-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .highscore-box {
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-container {
+            flex: 1;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            position: relative;
+        }
+
+        .info-text {
+            text-align: center;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+
+        #canvas-container {
+            width: 100%;
+            aspect-ratio: 1;
+            position: relative;
+            background-color: var(--card-color);
+            border-radius: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .result-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            display: none;
+            animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes scaleUp {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .score-percentage {
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .score-label {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Farbstile für die Prozentanzeige */
+        .color-red { color: var(--color-red); }
+        .color-yellow { color: var(--color-yellow); }
+        .color-green { color: var(--color-green); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="/index.html" class="back-link">← Zur Startseite</a>
+        <div class="highscore-box">Highscore: <span id="highscore-val">0.0</span>%</div>
+    </header>
+
+    <div class="game-container">
+        <div id="info-text" class="info-text">Zeichne einen Kreis in die Box!</div>
+
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="result-overlay" class="result-overlay">
+                <div id="score-num" class="score-percentage">0%</div>
+                <div class="score-label">Genauigkeit</div>
+            </div>
+        </div>
+
+        <button id="reset-btn" class="btn" style="visibility: hidden;">Nochmal versuchen</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const infoText = document.getElementById('info-text');
+        const resultOverlay = document.getElementById('result-overlay');
+        const scoreNum = document.getElementById('score-num');
+        const resetBtn = document.getElementById('reset-btn');
+        const highscoreVal = document.getElementById('highscore-val');
+
+        let points = [];
+        let isDrawing = false;
+        let isFinished = false;
+
+        // Highscore laden
+        let highscore = localStorage.getItem('circle_highscore') || 0;
+        highscoreVal.textContent = parseFloat(highscore).toFixed(1);
+
+        // Canvas an Displaygröße & Retina-Auflösung anpassen
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Wenn schon gezeichnet wurde, nach Resize neu rendern (optional)
+            if (isFinished) {
+                evaluateAndDraw();
+            } else {
+                clearCanvas();
+            }
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        // Kurzer Timeout damit die bounding boxes beim Laden stimmen
+        setTimeout(resizeCanvas, 100);
+
+        // Touch & Maus Events abfangen
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            if (isFinished) return;
+            isDrawing = true;
+            points = [];
+            const pos = getPos(e);
+            points.push(pos);
+            
+            clearCanvas();
+            ctx.beginPath();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.moveTo(pos.x, pos.y);
+            
+            infoText.textContent = "Schließe den Kreis...";
+        }
+
+        function draw(e) {
+            if (!isDrawing || isFinished) return;
+            const pos = getPos(e);
+            points.push(pos);
+
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function endDrawing() {
+            if (!isDrawing || isFinished) return;
+            isDrawing = false;
+
+            // Zu wenige Punkte gezeichnet?
+            if (points.length < 15) {
+                infoText.textContent = "Das war zu kurz. Versuche es nochmal!";
+                clearCanvas();
+                return;
+            }
+
+            isFinished = true;
+            evaluateAndDraw();
+        }
+
+        // Event Listener registrieren
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', endDrawing);
+
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
+        window.addEventListener('touchend', endDrawing);
+
+        // Logik zur Auswertung des Kreises
+        function evaluateAndDraw() {
+            // 1. Schwerpunkt (Mittelpunkt) berechnen
+            let sumX = 0, sumY = 0;
+            points.forEach(p => { sumX += p.x; sumY += p.y; });
+            const centerX = sumX / points.length;
+            const centerY = sumY / points.length;
+
+            // 2. Durchschnittlichen Radius berechnen
+            let sumRadius = 0;
+            points.forEach(p => {
+                const dx = p.x - centerX;
+                const dy = p.y - centerY;
+                sumRadius += Math.sqrt(dx * dx + dy * dy);
+            });
+            const avgRadius = sumRadius / points.length;
+
+            // Sicherheitscheck gegen winzige Klicks
+            if(avgRadius < 10) {
+                isFinished = false;
+                infoText.textContent = "Kreis ist zu klein!";
+                clearCanvas();
+                return;
+            }
+
+            // 3. Fehler pro Punkt ermitteln und Gesamt-Genauigkeit bestimmen
+            let totalDeviation = 0;
+            const pointEvaluations = points.map(p => {
+                const dx = p.x - centerX;
+                const dy = p.y - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const diff = Math.abs(dist - avgRadius);
+                
+                // Relative Abweichung zum Soll-Radius
+                const relativeDiff = diff / avgRadius;
+                totalDeviation += relativeDiff;
+
+                return {
+                    x: p.x,
+                    y: p.y,
+                    diffRatio: relativeDiff // 0 = perfekt, höher = schlechter
+                };
+            });
+
+            // Durchschnittliche Genauigkeit kalkulieren
+            const avgDeviation = totalDeviation / points.length;
+            // Magische Formel für die Prozentwertung (100% ist unmöglich, verzeiht kleine Ruckler)
+            let score = (1 - (avgDeviation * 2.2)) * 100;
+            if (score < 0) score = 0;
+            
+            // Check ob der Kreis geschlossen wurde (Anfang zu Ende)
+            const startP = points[0];
+            const endP = points[points.length - 1];
+            const gap = Math.sqrt(Math.pow(startP.x - endP.x, 2) + Math.pow(startP.y - endP.y, 2));
+            const gapPenalty = (gap / avgRadius) * 20; // Abzug wenn nicht geschlossen
+            score -= gapPenalty;
+            if (score < 0) score = 0;
+
+            // Canvas leeren, um den Auswertungs-Look zu malen
+            const w = canvas.getBoundingClientRect().width;
+            const h = canvas.getBoundingClientRect().height;
+            ctx.clearRect(0, 0, w, h);
+
+            // A. Optimalen Kreis zeichnen (Dezent Grau/Blau)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, avgRadius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 6]); // Gestrichelt
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset Dash
+
+            // B. Gezeichneten Kreis farbkodiert nachziehen
+            for (let i = 1; i < pointEvaluations.length; i++) {
+                const p1 = pointEvaluations[i - 1];
+                const p2 = pointEvaluations[i];
+
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+
+                // Toleranzwerte für Farbbereiche der Abschnitte
+                // diffRatio = Abweichung vom perfekten Radius
+                if (p2.diffRatio < 0.06) {
+                    ctx.strokeStyle = '#22c55e'; // Grün (Nahezu perfekt)
+                } else if (p2.diffRatio < 0.15) {
+                    ctx.strokeStyle = '#eab308'; // Gelb (Mittelmäßig)
+                } else {
+                    ctx.strokeStyle = '#ef4444'; // Rot (Starke Abweichung)
+                }
+                ctx.stroke();
+            }
+
+            // 4. Score-Farbe ermitteln (0-50 Rot, 50-70 Gelb, 70-100 Grün)
+            scoreNum.classList.remove('color-red', 'color-yellow', 'color-green');
+            if (score <= 50) {
+                scoreNum.classList.add('color-red');
+            } else if (score <= 70) {
+                scoreNum.classList.add('color-yellow');
+            } else {
+                scoreNum.classList.add('color-green');
+            }
+
+            // Score anzeigen
+            scoreNum.textContent = score.toFixed(1) + '%';
+            resultOverlay.style.display = 'block';
+            infoText.textContent = "Auswertung fertig!";
+
+            // Highscore abgleichen & abspeichern
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('circle_highscore', highscore);
+                highscoreVal.textContent = score.toFixed(1);
+            }
+
+            // Reset Button sichtbar machen
+            resetBtn.style.visibility = 'visible';
+        }
+
+        // Reset Button Klick
+        resetBtn.addEventListener('click', () => {
+            isFinished = false;
+            isDrawing = false;
+            points = [];
+            clearCanvas();
+            resultOverlay.style.display = 'none';
+            resetBtn.style.visibility = 'hidden';
+            infoText.textContent = "Zeichne einen Kreis in die Box!";
+        });
+    </script>
+</body>
+</html>
