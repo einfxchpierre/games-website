@@ -34,7 +34,7 @@
             position: fixed;
         }
 
-        /* Zustand, wenn das Video übersprungen wurde / State when video is skipped */
+        /* Scrollen nach Video-Skip wieder freigeben / Re-enable scrolling after skipping video */
         body.video-skipped, html.video-skipped {
             position: static !important;
             overflow: auto !important;
@@ -172,7 +172,6 @@
             transform: scale(0.95);
         }
 
-        /* --- SKIP BUTTON --- */
         #skipVideoButton {
             position: fixed;
             bottom: 25px;
@@ -196,7 +195,6 @@
             transform: scale(0.95);
         }
 
-        /* --- SETTINGS BUTTON & MODAL --- */
         #settingsTrigger {
             position: fixed;
             top: 20px;
@@ -279,7 +277,6 @@
             font-weight: 500;
         }
 
-        /* Toggle Switch */
         .switch {
             position: relative;
             display: inline-block;
@@ -409,6 +406,7 @@
             document.head.appendChild(antiVideoStyle);
 
             document.addEventListener("DOMContentLoaded", () => {
+                /* Layout-Sperre aufheben & Inhalt anzeigen / Unlock layout & display content */
                 document.documentElement.classList.add('video-skipped');
                 document.body.classList.add('video-skipped');
                 const contentPage = document.getElementById('contentPage');
@@ -439,7 +437,6 @@
     </div>
 </div>
 
-<!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal" onclick="closeModalOnOverlay(event)">
     <div class="modal-card">
         <h2>Einstellungen</h2>
@@ -460,7 +457,7 @@
     function skipVideo() {
         sessionStorage.setItem('phoenixVideoPlayed', 'true');
         
-        // Scroll-Sperre aufheben / Remove scroll lock
+        /* Body-Fix für wiederhergestellte Scrollbarkeit / Body fix for restored scrollability */
         document.documentElement.classList.add('video-skipped');
         document.body.classList.add('video-skipped');
 
@@ -508,7 +505,7 @@
         const GAMES_DATA_SAFE = typeof GAMES_DATA !== 'undefined' ? GAMES_DATA : [];
 
         const filtered = GAMES_DATA_SAFE.filter(game => 
-            game.game_name.toLowerCase().includes(filterTest.toLowerCase())
+            game.game_name.toLowerCase().includes(filterText.toLowerCase())
         );
 
         filtered.forEach(game => {
@@ -553,7 +550,7 @@
             videoLandscape.onended = function() {
                 sessionStorage.setItem('phoenixVideoPlayed', 'true');
                 
-                // Scroll-Sperre aufheben, wenn das Video regulär zu Ende läuft
+                /* Automatische Scrollfreigabe nach Videoende / Automatic scroll release after video end */
                 document.documentElement.classList.add('video-skipped');
                 document.body.classList.add('video-skipped');
 
