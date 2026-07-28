@@ -34,11 +34,14 @@
             position: fixed;
         }
 
-        /* Scrollen nach Video-Skip wieder freigeben / Re-enable scrolling after skipping video */
+        /* Smartphone-Scrollbar-Freigabe für Root & Main Container / Mobile scroll release for Root & Main Container */
         body.video-skipped, html.video-skipped {
-            position: static !important;
-            overflow: auto !important;
+            position: relative !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
             height: auto !important;
+            min-height: 100% !important;
+            -webkit-overflow-scrolling: touch !important;
         }
 
         #contentPage {
@@ -53,6 +56,15 @@
             visibility: hidden;
             transition: opacity 1s ease, visibility 1s ease;
             z-index: 10;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Dokumentenfluss für mobiles Scrollen wiederherstellen / Restore document flow for mobile scrolling */
+        body.video-skipped #contentPage {
+            position: relative !important;
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow: visible !important;
         }
 
         #contentPage.active {
@@ -406,7 +418,7 @@
             document.head.appendChild(antiVideoStyle);
 
             document.addEventListener("DOMContentLoaded", () => {
-                /* Layout-Sperre aufheben & Inhalt anzeigen / Unlock layout & display content */
+                /* Direkter Reset für mobile Touch-Gesten / Direct reset for mobile touch gestures */
                 document.documentElement.classList.add('video-skipped');
                 document.body.classList.add('video-skipped');
                 const contentPage = document.getElementById('contentPage');
@@ -457,7 +469,7 @@
     function skipVideo() {
         sessionStorage.setItem('phoenixVideoPlayed', 'true');
         
-        /* Body-Fix für wiederhergestellte Scrollbarkeit / Body fix for restored scrollability */
+        /* Erzwingt normale Scroll-Hierarchie für Touchscreens / Forces regular scroll hierarchy for touchscreens */
         document.documentElement.classList.add('video-skipped');
         document.body.classList.add('video-skipped');
 
@@ -550,7 +562,7 @@
             videoLandscape.onended = function() {
                 sessionStorage.setItem('phoenixVideoPlayed', 'true');
                 
-                /* Automatische Scrollfreigabe nach Videoende / Automatic scroll release after video end */
+                /* Behebt Scroll-Blockade nach Videoende / Fixes scroll lock after video ends */
                 document.documentElement.classList.add('video-skipped');
                 document.body.classList.add('video-skipped');
 
