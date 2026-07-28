@@ -68,7 +68,8 @@
 
         header {
             text-align: center;
-            padding: 40px 10px;
+            padding: 40px 10px 20px 10px;
+            position: relative;
         }
 
         h1 {
@@ -83,7 +84,7 @@
         }
 
         .search-container {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         #searchBar {
@@ -164,15 +165,7 @@
             transform: scale(0.95);
         }
 
-        .highscore-text {
-            display: block;
-            font-size: 0.85rem;
-            color: var(--text-gray);
-            margin-top: 12px;
-            font-weight: 500;
-        }
-
-        /* --- STYLING FÜR DEN SKIP-BUTTON --- */
+        /* --- SKIP BUTTON --- */
         #skipVideoButton {
             position: fixed;
             bottom: 25px;
@@ -187,13 +180,151 @@
             letter-spacing: 1px;
             border-radius: 50px;
             cursor: pointer;
-            z-index: 99999; /* Über dem Video Layer */
+            z-index: 99999;
             box-shadow: 0 4px 20px rgba(230, 0, 0, 0.4);
-            transition: transform 0.2s ease, background-color 0.2s ease;
+            transition: transform 0.2s ease;
         }
 
         #skipVideoButton:active {
             transform: scale(0.95);
+        }
+
+        /* --- SETTINGS BUTTON & MODAL --- */
+        #settingsTrigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(37, 37, 37, 0.8);
+            border: 2px solid var(--main-red);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            transition: transform 0.2s ease;
+        }
+
+        #settingsTrigger:active {
+            transform: scale(0.9);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.open .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-card h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            border-bottom: 2px solid var(--main-red);
+            padding-bottom: 10px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .setting-label {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--main-red);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .close-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
         }
 
         @media (max-width: 992px) {
@@ -206,7 +337,7 @@
         }
 
         @media (max-width: 480px) {
-            header { padding: 30px 5px; }
+            header { padding: 20px 5px; }
             .container { padding: 12px; }
 
             .game-grid {
@@ -236,26 +367,39 @@
                 font-size: 0.8rem;
             }
 
-            .highscore-text {
-                font-size: 0.75rem;
-                margin-top: 8px;
-            }
-
             #skipVideoButton {
                 bottom: 15px;
                 right: 15px;
                 padding: 10px 20px;
                 font-size: 0.85rem;
             }
+
+            #settingsTrigger {
+                top: 15px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
         }
     </style>
 
     <script>
-        // Blocker-Logik erweitertet: Versteckt auch den Skip-Button, wenn das Video schon lief
-        if (sessionStorage.getItem('phoenixVideoPlayed') === 'true') {
+        // Prüfen, ob das Video per Einstellung oder vorherigem Abspielen deaktivert ist
+        // Check if video is disabled by setting or previous playback
+        const isVideoDisabled = localStorage.getItem('phoenixVideoDisabled') === 'true' || 
+                               sessionStorage.getItem('phoenixVideoPlayed') === 'true';
+
+        if (isVideoDisabled) {
             const antiVideoStyle = document.createElement('style');
+            antiVideoStyle.id = 'antiVideoStyle';
             antiVideoStyle.textContent = `
-                .video-overlay-layer, .video-player-container, #skipVideoButton { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+                .video-overlay-layer, .video-player-container, #skipVideoButton { 
+                    display: none !important; 
+                    opacity: 0 !important; 
+                    visibility: hidden !important; 
+                    pointer-events: none !important; 
+                }
             `;
             document.head.appendChild(antiVideoStyle);
 
@@ -273,6 +417,8 @@
 </head>
 <body>
 
+<button id="settingsTrigger" onclick="toggleSettingsModal()" aria-label="Einstellungen">⚙️</button>
+
 <button id="skipVideoButton" onclick="skipVideo()">Video überspringen</button>
 
 <div id="contentPage">
@@ -289,23 +435,79 @@
     </div>
 </div>
 
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal" onclick="closeModalOnOverlay(event)">
+    <div class="modal-card">
+        <h2>Einstellungen</h2>
+        <div class="setting-row">
+            <span class="setting-label">Intro-Video aktivieren</span>
+            <label class="switch">
+                <input type="checkbox" id="videoToggle" onchange="toggleVideoSetting(this.checked)">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button class="close-btn" onclick="toggleSettingsModal()">Schließen</button>
+    </div>
+</div>
+
 <script src="games.js"></script>
 
 <script>
-    // Funktion zum Überspringen des Videos bei Button-Klick
+    // Video überspringen: Versteckt Video sofort ohne Seiten-Reload
+    // Skip video: Hides video immediately without reloading the page
     function skipVideo() {
         sessionStorage.setItem('phoenixVideoPlayed', 'true');
-        // Lädt die Seite blitzschnell neu; die obere Blocker-Logik greift sofort und zeigt direkt den Hub
-        location.reload(); 
+        
+        const contentPage = document.getElementById('contentPage');
+        const skipBtn = document.getElementById('skipVideoButton');
+        const videoLayers = document.querySelectorAll('.video-overlay-layer, .video-player-container');
+
+        if (contentPage) contentPage.classList.add('instant-show');
+        if (skipBtn) skipBtn.style.display = 'none';
+        
+        videoLayers.forEach(el => {
+            el.style.display = 'none';
+        });
+
+        document.body.style.position = 'relative';
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto';
+    }
+
+    // Modal Funktionen / Modal functions
+    function toggleSettingsModal() {
+        const modal = document.getElementById('settingsModal');
+        const toggle = document.getElementById('videoToggle');
+        
+        // Checkbox-Status spiegeln / Mirror checkbox state
+        const isVideoDisabled = localStorage.getItem('phoenixVideoDisabled') === 'true';
+        toggle.checked = !isVideoDisabled;
+
+        modal.classList.toggle('open');
+    }
+
+    function closeModalOnOverlay(e) {
+        if (e.target.id === 'settingsModal') {
+            toggleSettingsModal();
+        }
+    }
+
+    function toggleVideoSetting(enabled) {
+        if (enabled) {
+            localStorage.removeItem('phoenixVideoDisabled');
+            sessionStorage.removeItem('phoenixVideoPlayed');
+        } else {
+            localStorage.setItem('phoenixVideoDisabled', 'true');
+        }
     }
 
     function renderHub(filterText = "") {
         const grid = document.getElementById('gameGrid');
         grid.innerHTML = "";
 
-        const allData = JSON.parse(localStorage.getItem('myWebGames')) || {};
+        const GAMES_DATA_SAFE = typeof GAMES_DATA !== 'undefined' ? GAMES_DATA : [];
 
-        const filtered = GAMES_DATA.filter(game => 
+        const filtered = GAMES_DATA_SAFE.filter(game => 
             game.game_name.toLowerCase().includes(filterText.toLowerCase())
         );
 
@@ -350,9 +552,8 @@
             const originalEnd = videoLandscape.onended;
             videoLandscape.onended = function() {
                 sessionStorage.setItem('phoenixVideoPlayed', 'true');
-                // Blendet den Button aus, wenn das Video von alleine endet
                 const btn = document.getElementById('skipVideoButton');
-                if(btn) btn.style.display = 'none';
+                if (btn) btn.style.display = 'none';
                 if (originalEnd) originalEnd();
             };
         }
