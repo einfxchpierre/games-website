@@ -34,9 +34,9 @@
             position: fixed;
         }
 
-        /* Smartphone-Scrollbar-Freigabe für Root & Main Container / Mobile scroll release for Root & Main Container */
+        /* Smartphone-Scrollbar-Freigabe nach Video / Mobile scroll release after video */
         body.video-skipped, html.video-skipped {
-            position: relative !important;
+            position: static !important;
             overflow-x: hidden !important;
             overflow-y: auto !important;
             height: auto !important;
@@ -416,16 +416,6 @@
                 }
             `;
             document.head.appendChild(antiVideoStyle);
-
-            document.addEventListener("DOMContentLoaded", () => {
-                /* Direkter Reset für mobile Touch-Gesten / Direct reset for mobile touch gestures */
-                document.documentElement.classList.add('video-skipped');
-                document.body.classList.add('video-skipped');
-                const contentPage = document.getElementById('contentPage');
-                if (contentPage) {
-                    contentPage.classList.add('instant-show');
-                }
-            });
         }
     </script>
 </head>
@@ -469,20 +459,18 @@
     function skipVideo() {
         sessionStorage.setItem('phoenixVideoPlayed', 'true');
         
-        /* Erzwingt normale Scroll-Hierarchie für Touchscreens / Forces regular scroll hierarchy for touchscreens */
-        document.documentElement.classList.add('video-skipped');
-        document.body.classList.add('video-skipped');
+        /* Ruft die Entsperrung aus phoenix.js auf / Calls unlock function from phoenix.js */
+        if (typeof window.finishVideoExperience === 'function') {
+            window.finishVideoExperience();
+        } else {
+            document.documentElement.classList.add('video-skipped');
+            document.body.classList.add('video-skipped');
+            const contentPage = document.getElementById('contentPage');
+            if (contentPage) contentPage.classList.add('instant-show');
+        }
 
-        const contentPage = document.getElementById('contentPage');
         const skipBtn = document.getElementById('skipVideoButton');
-        const videoLayers = document.querySelectorAll('.video-overlay-layer, .video-player-container');
-
-        if (contentPage) contentPage.classList.add('instant-show');
         if (skipBtn) skipBtn.style.display = 'none';
-        
-        videoLayers.forEach(el => {
-            el.style.display = 'none';
-        });
     }
 
     function toggleSettingsModal() {
@@ -553,26 +541,6 @@
 </script>
 
 <script src="https://phoenixmagie.vercel.app/beta/phoenix.js"></script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const videoLandscape = document.getElementById('bgVideoLandscape');
-        if (videoLandscape) {
-            const originalEnd = videoLandscape.onended;
-            videoLandscape.onended = function() {
-                sessionStorage.setItem('phoenixVideoPlayed', 'true');
-                
-                /* Behebt Scroll-Blockade nach Videoende / Fixes scroll lock after video ends */
-                document.documentElement.classList.add('video-skipped');
-                document.body.classList.add('video-skipped');
-
-                const btn = document.getElementById('skipVideoButton');
-                if (btn) btn.style.display = 'none';
-                if (originalEnd) originalEnd();
-            };
-        }
-    });
-</script>
 
 </body>
 </html>
