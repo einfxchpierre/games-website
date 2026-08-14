@@ -76,6 +76,13 @@ const GAMES_DATA = [
     path: "games/drawacircle/index.html",
     icon: "pictures/icons/kreis.png",
     btn_color: "#73819"
+},
+{
+    id: "pacman",
+    game_name: "Pac Man",
+    path: "games/pacman/index.html",
+    icon: "pictures/icons/pacman.png",
+    btn_color: "#73819"
 }
     /*{
         id: "beispiel",
