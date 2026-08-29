@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match 3 Spiel</title>
+    <title>Match 3 Deluxe</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,9 +17,7 @@
             margin: 0;
         }
 
-        h1 {
-            margin-bottom: 10px;
-        }
+        h1 { margin-bottom: 10px; }
 
         .score-board {
             font-size: 24px;
@@ -38,6 +36,7 @@
         }
 
         .tile {
+            position: relative;
             width: 60px;
             height: 60px;
             border-radius: 8px;
@@ -48,20 +47,35 @@
             user-select: none;
         }
 
-        .tile:hover {
-            transform: scale(1.05);
-        }
+        .tile:hover { transform: scale(1.05); }
 
         .tile.selected {
             outline: 3px solid #ffffff;
             transform: scale(1.1);
             z-index: 10;
         }
+
+        .tile::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            pointer-events: none;
+        }
+
+        .tile.powerup-rocket-h::after { content: '🚀↔️'; }
+        .tile.powerup-rocket-v::after { content: '🚀↕️'; }
+        .tile.powerup-helicopter::after { content: '🚁'; }
+        .tile.powerup-tnt::after { content: '🧨'; }
+        .tile.powerup-disco::after { content: '🪩'; }
     </style>
 </head>
 <body>
 
-    <h1>Match 3</h1>
+    <h1>Match 3 Deluxe</h1>
     <div class="score-board">Punkte: <span id="score">0</span></div>
     <div id="grid"></div>
 
@@ -96,35 +110,47 @@
             for (let r = 0; r < GRID_SIZE; r++) {
                 const row = [];
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    let stone;
-                    // Keine anfänglichen Dreierketten erzeugen / Avoid initial matches on spawn
+                    let stoneUrl;
                     do {
-                        stone = getRandomStone();
+                        stoneUrl = getRandomStone();
                     } while (
-                        (r >= 2 && board[r - 1][c] === stone && board[r - 2][c] === stone) ||
-                        (c >= 2 && row[c - 1] === stone && row[c - 2] === stone)
+                        (r >= 2 && board[r - 1][c].stone === stoneUrl && board[r - 2][c].stone === stoneUrl) ||
+                        (c >= 2 && row[c - 1].stone === stoneUrl && row[c - 2].stone === stoneUrl)
                     );
 
-                    row.push(stone);
+                    const tileData = { stone: stoneUrl, powerup: null };
+                    row.push(tileData);
 
-                    const tile = document.createElement('div');
-                    tile.classList.add('tile');
-                    tile.dataset.row = r;
-                    tile.dataset.col = c;
-                    tile.style.backgroundImage = `url(${stone})`;
-                    tile.addEventListener('click', onTileClick);
-                    gridElement.appendChild(tile);
+                    const tileEl = document.createElement('div');
+                    tileEl.classList.add('tile');
+                    tileEl.dataset.row = r;
+                    tileEl.dataset.col = c;
+                    tileEl.addEventListener('click', onTileClick);
+                    gridElement.appendChild(tileEl);
                 }
                 board.push(row);
             }
+            updateRender();
         }
 
         function updateRender() {
             const tiles = document.querySelectorAll('.tile');
-            tiles.forEach(tile => {
-                const r = tile.dataset.row;
-                const c = tile.dataset.col;
-                tile.style.backgroundImage = `url(${board[r][c]})`;
+            tiles.forEach(tileEl => {
+                const r = tileEl.dataset.row;
+                const c = tileEl.dataset.col;
+                const tileData = board[r][c];
+
+                if (tileData && tileData.stone) {
+                    // Expliziter Zugriff auf den URL-String im Objekt / Explicit access to URL string inside object
+                    tileEl.style.backgroundImage = `url("${tileData.stone}")`;
+                } else {
+                    tileEl.style.backgroundImage = 'none';
+                }
+
+                tileEl.className = 'tile';
+                if (tileData && tileData.powerup) {
+                    tileEl.classList.add(`powerup-${tileData.powerup.replace('_', '-')}`);
+                }
             });
         }
 
@@ -141,8 +167,6 @@
             } else {
                 const prevR = selectedTile.r;
                 const prevC = selectedTile.c;
-                
-                // Nachbarschaftsprüfung (oben, unten, links, rechts) / Check adjacency (up, down, left, right)
                 const isAdjacent = Math.abs(prevR - r) + Math.abs(prevC - c) === 1;
 
                 selectedTile.element.classList.remove('selected');
@@ -156,7 +180,6 @@
                     if (matches.length > 0) {
                         await handleMatches();
                     } else {
-                        // Rückgängig machen, falls kein Match entsteht / Swap back if no match formed
                         await new Promise(res => setTimeout(res, 250));
                         swapTiles(prevR, prevC, r, c);
                         updateRender();
@@ -176,11 +199,10 @@
         function checkMatches() {
             const matchedCoords = new Set();
 
-            // Horizontale Treffer prüfen / Check horizontal matches
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE - 2; c++) {
-                    const stone = board[r][c];
-                    if (stone && stone === board[r][c + 1] && stone === board[r][c + 2]) {
+                    const stone = board[r][c]?.stone;
+                    if (stone && stone === board[r][c + 1]?.stone && stone === board[r][c + 2]?.stone) {
                         matchedCoords.add(`${r},${c}`);
                         matchedCoords.add(`${r},${c + 1}`);
                         matchedCoords.add(`${r},${c + 2}`);
@@ -188,11 +210,10 @@
                 }
             }
 
-            // Vertikale Treffer prüfen / Check vertical matches
             for (let r = 0; r < GRID_SIZE - 2; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    const stone = board[r][c];
-                    if (stone && stone === board[r + 1][c] && stone === board[r + 2][c]) {
+                    const stone = board[r][c]?.stone;
+                    if (stone && stone === board[r + 1][c]?.stone && stone === board[r + 2][c]?.stone) {
                         matchedCoords.add(`${r},${c}`);
                         matchedCoords.add(`${r + 1},${c}`);
                         matchedCoords.add(`${r + 2},${c}`);
@@ -214,7 +235,7 @@
                 scoreElement.textContent = score;
 
                 matches.forEach(({ r, c }) => {
-                    board[r][c] = null;
+                    board[r][c] = { stone: null, powerup: null };
                 });
 
                 updateRender();
@@ -234,12 +255,11 @@
         function applyGravity() {
             for (let c = 0; c < GRID_SIZE; c++) {
                 let emptyRow = GRID_SIZE - 1;
-                // Von unten nach oben leere Felder auffüllen / Shift tiles down from bottom to top
                 for (let r = GRID_SIZE - 1; r >= 0; r--) {
-                    if (board[r][c] !== null) {
+                    if (board[r][c].stone !== null) {
                         board[emptyRow][c] = board[r][c];
                         if (emptyRow !== r) {
-                            board[r][c] = null;
+                            board[r][c] = { stone: null, powerup: null };
                         }
                         emptyRow--;
                     }
@@ -250,8 +270,8 @@
         function fillNewStones() {
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    if (board[r][c] === null) {
-                        board[r][c] = getRandomStone();
+                    if (board[r][c].stone === null) {
+                        board[r][c] = { stone: getRandomStone(), powerup: null };
                     }
                 }
             }
