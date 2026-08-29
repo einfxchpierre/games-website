@@ -1,5 +1,5 @@
 {
-  "cleanURLs": true,
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/:path*",
