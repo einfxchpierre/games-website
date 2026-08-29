@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Match 3 Deluxe</title>
+    <style>
+        :root {
+            --cell-size-desktop: 60px;
+            --cell-size-mobile: 11vw;
+            --cell-gap: 5px;
+            --grid-size: 8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2f;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        h1 { margin: 10px 0; font-size: 2rem; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+        .score-board { font-size: 1.5rem; margin-bottom: 15px; }
+
+        #game-container {
+            position: relative;
+            background-color: #2a2a40;
+            padding: var(--cell-gap);
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            touch-action: none;
+        }
+
+        #grid {
+            display: grid;
+            gap: var(--cell-gap);
+            grid-template-columns: repeat(var(--grid-size), var(--cell-size-mobile));
+            grid-template-rows: repeat(var(--grid-size), var(--cell-size-mobile));
+        }
+
+        @media (min-width: 600px) {
+            #grid {
+                grid-template-columns: repeat(var(--grid-size), var(--cell-size-desktop));
+                grid-template-rows: repeat(var(--grid-size), var(--cell-size-desktop));
+            }
+        }
+
+        .tile {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            user-select: none;
+            will-change: transform, opacity;
+            transition: outline 0.1s;
+        }
+
+        .tile::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.9;
+        }
+
+        .tile.selected { outline: 4px solid #ffffff; z-index: 10; box-shadow: 0 0 15px rgba(255,255,255,0.7); }
+
+        @keyframes swap {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.5; filter: brightness(2); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        @keyframes fallIn {
+            from { transform: translateY(-400px) scaleY(1.2); opacity: 0; }
+            to { transform: translateY(0) scaleY(1); opacity: 1; }
+        }
+
+        @keyframes hint {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.3); }
+        }
+
+        .anim-swap { animation: swap 0.3s ease-out; }
+        .anim-explode { animation: explode 0.4s ease-out forwards; }
+        .anim-fall { animation: fallIn 0.5s ease-out; }
+        .anim-hint { animation: hint 1s infinite; }
+
+        .tile.powerup-rocket-h::after { content: '🚀↔️'; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        .tile.powerup-rocket-v::after { content: '🚀↕️'; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        .tile.powerup-helicopter::after { content: '🚁'; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        .tile.powerup-tnt::after { content: '🧨'; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; }
+        .tile.powerup-disco::after { content: '🪩'; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(0,0,0,0) 70%); border-radius: 50%;}
+
+        .effect-overlay {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 20px 5px white;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        @keyframes laser-h { 0% { width: 0; opacity: 1; left: 50%; } 100% { width: 1000px; opacity: 0; left: -500px; } }
+        @keyframes laser-v { 0% { height: 0; opacity: 1; top: 50%; } 100% { height: 1000px; opacity: 0; top: -500px; } }
+        @keyframes tnt-boom { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
+
+        .laser-h-effect { animation: laser-h 0.4s ease-out forwards; }
+        .laser-v-effect { animation: laser-v 0.4s ease-out forwards; }
+        .tnt-boom-effect { animation: tnt-boom 0.5s ease-out forwards; border-radius: 50%; width: 60px; height: 60px;}
+    </style>
+</head>
+<body>
+
+    <h1>Match 3 Deluxe</h1>
+    <div class="score-board">Punkte: <span id="score">0</span></div>
+    
+    <div id="game-container">
+        <div id="grid"></div>
+    </div>
+
+<script>
+    const GRID_SIZE = 8;
+    const gridElement = document.getElementById('grid');
+    const containerElement = document.getElementById('game-container');
+    const scoreElement = document.getElementById('score');
+    
+    const STONES = [
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-blue.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-green.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-orange.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-purple.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-red.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-turquoise.png',
+        'https://zdpmsbnddyyheukujrtb.supabase.co/storage/v1/object/public/assets/pictures/icons/stone-yellow.png'
+    ];
+
+    const POWERUP = {
+        NONE: null,
+        ROCKET_H: 'rocket_h',
+        ROCKET_V: 'rocket_v',
+        HELICOPTER: 'helicopter',
+        TNT: 'tnt',
+        DISCO: 'disco'
+    };
+
+    let board = [];
+    let selectedTileCoords = null;
+    let score = 0;
+    let isProcessing = false;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const SWIPE_THRESHOLD = 30;
+
+    function getRandomStone() {
+        return STONES[Math.floor(Math.random() * STONES.length)];
+    }
+
+    function createBoard() {
+        board = [];
+        gridElement.innerHTML = '';
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            const row = [];
+            for (let c = 0; c < GRID_SIZE; c++) {
+                let stone;
+                do {
+                    stone = getRandomStone();
+                } while (
+                    (r >= 2 && board[r - 1][c].stone === stone && board[r - 2][c].stone === stone) ||
+                    (c >= 2 && row[c - 1].stone === stone && row[c - 2].stone === stone)
+                );
+
+                const tileEl = document.createElement('div');
+                tileEl.classList.add('tile');
+                tileEl.dataset.row = r;
+                tileEl.dataset.col = c;
+                
+                tileEl.addEventListener('click', onTileClick);
+                tileEl.addEventListener('touchstart', onTouchStart, {passive: true});
+                tileEl.addEventListener('touchend', onTouchEnd, {passive: true});
+                tileEl.addEventListener('contextmenu', e => e.preventDefault());
+
+                gridElement.appendChild(tileEl);
+
+                row.push({ stone: stone, powerup: POWERUP.NONE, element: tileEl });
+            }
+            board.push(row);
+        }
+        updateRender();
+    }
+
+    function updateRender() {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const tile = board[r][c];
+                if (!tile) continue;
+
+                const tileEl = tile.element;
+                if (tile.stone) {
+                    // Saubere Zuweisung des URL-Strings zur Vermeidung von Parsing-Fehlern / Clean assignment of URL string to prevent parsing errors
+                    tileEl.style.backgroundImage = `url(${encodeURI(tile.stone)})`;
+                    tileEl.style.opacity = '1';
+                } else {
+                    tileEl.style.backgroundImage = 'none';
+                }
+
+                tileEl.classList.remove('powerup-rocket-h', 'powerup-rocket-v', 'powerup-helicopter', 'powerup-tnt', 'powerup-disco');
+                if (tile.powerup) {
+                    tileEl.classList.add(`powerup-${tile.powerup.replace('_','-')}`);
+                }
+            }
+        }
+    }
+
+    function onTouchStart(e) {
+        if (isProcessing) return;
+        const touch = e.changedTouches[0];
+        touchStartX = touch.pageX;
+        touchStartY = touch.pageY;
+        onTileClick(e);
+    }
+
+    function onTouchEnd(e) {
+        if (isProcessing || !selectedTileCoords) return;
+        const touch = e.changedTouches[0];
+        const distX = touch.pageX - touchStartX;
+        const distY = touch.pageY - touchStartY;
+
+        let targetR = selectedTileCoords.r;
+        let targetC = selectedTileCoords.c;
+
+        if (Math.abs(distX) > Math.abs(distY)) {
+            if (Math.abs(distX) > SWIPE_THRESHOLD) targetC += (distX > 0) ? 1 : -1;
+        } else {
+            if (Math.abs(distY) > SWIPE_THRESHOLD) targetR += (distY > 0) ? 1 : -1;
+        }
+
+        if (targetR !== selectedTileCoords.r || targetC !== selectedTileCoords.c) {
+            if (isValidCoord(targetR, targetC)) {
+                board[targetR][targetC].element.click(); 
+            } else {
+                deselect();
+            }
+        }
+    }
+
+    async function onTileClick(e) {
+        if (isProcessing) return;
+
+        const tileEl = e.currentTarget;
+        const r = parseInt(tileEl.dataset.row);
+        const c = parseInt(tileEl.dataset.col);
+
+        if(!board[r][c].stone && !board[r][c].powerup) return;
+
+        if (!selectedTileCoords) {
+            selectTile(r, c);
+        } else {
+            const prevR = selectedTileCoords.r;
+            const prevC = selectedTileCoords.c;
+            const isAdjacent = Math.abs(prevR - r) + Math.abs(prevC - c) === 1;
+
+            if (isAdjacent) {
+                await handleSwap(prevR, prevC, r, c);
+            } else {
+                deselect();
+                selectTile(r, c);
+            }
+        }
+    }
+
+    function selectTile(r, c) {
+        selectedTileCoords = { r, c };
+        board[r][c].element.classList.add('selected');
+    }
+
+    function deselect() {
+        if(selectedTileCoords) {
+            board[selectedTileCoords.r][selectedTileCoords.c].element.classList.remove('selected');
+            selectedTileCoords = null;
+        }
+    }
+
+    async function handleSwap(r1, c1, r2, c2) {
+        isProcessing = true;
+        deselect();
+
+        board[r1][c1].element.classList.add('anim-swap');
+        board[r2][c2].element.classList.add('anim-swap');
+        
+        swapTiles(r1, c1, r2, c2);
+        updateRender();
+
+        await new Promise(res => setTimeout(res, 300));
+        
+        board[r1][c1].element.classList.remove('anim-swap');
+        board[r2][c2].element.classList.remove('anim-swap');
+
+        const p1 = board[r1][c1].powerup;
+        const p2 = board[r2][c2].powerup;
+        
+        if ((p1 === POWERUP.DISCO && board[r2][c2].stone) || (p2 === POWERUP.DISCO && board[r1][c1].stone)) {
+            const discoCoords = p1 === POWERUP.DISCO ? {r: r1, c: c1} : {r: r2, c: c2};
+            const targetColor = p1 === POWERUP.DISCO ? board[r2][c2].stone : board[r1][c1].stone;
+            activateDisco(discoCoords.r, discoCoords.c, targetColor);
+            await processMatches([]);
+            isProcessing = false;
+            return;
+        }
+
+        if(p1 && p2) {
+             await comboPowerups(r1, c1, r2, c2, p1, p2);
+             await fillAndCheckChains();
+             isProcessing = false;
+             return;
+        }
+
+        let matches = findAllMatches();
+
+        if (matches.length > 0) {
+            await processMatches(matches);
+        } else {
+            board[r1][c1].element.classList.add('anim-swap');
+            board[r2][c2].element.classList.add('anim-swap');
+            
+            swapTiles(r1, c1, r2, c2);
+            updateRender();
+            
+            await new Promise(res => setTimeout(res, 300));
+            board[r1][c1].element.classList.remove('anim-swap');
+            board[r2][c2].element.classList.remove('anim-swap');
+        }
+        isProcessing = false;
+    }
+
+    function swapTiles(r1, c1, r2, c2) {
+        const tempStone = board[r1][c1].stone;
+        const tempPowerup = board[r1][c1].powerup;
+        
+        board[r1][c1].stone = board[r2][c2].stone;
+        board[r1][c1].powerup = board[r2][c2].powerup;
+        
+        board[r2][c2].stone = tempStone;
+        board[r2][c2].powerup = tempPowerup;
+    }
+
+    function findAllMatches() {
+        const matchedCoords = new Map();
+        const allMatchStructures = [];
+
+        const addMatch = (r, c, type) => {
+            const key = `${r},${c}`;
+            if(!matchedCoords.has(key)) {
+                matchedCoords.set(key, {r, c, stone: board[r][c].stone, structures: [type]});
+            } else {
+                const m = matchedCoords.get(key);
+                if(!m.structures.includes(type)) m.structures.push(type);
+            }
+        };
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            let count = 1;
+            for (let c = 1; c <= GRID_SIZE; c++) {
+                if (c < GRID_SIZE && board[r][c].stone && board[r][c].stone === board[r][c - 1].stone) {
+                    count++;
+                } else {
+                    if (count >= 3) {
+                        const structure = [];
+                        for (let i = 0; i < count; i++) {
+                            addMatch(r, c - 1 - i, 'h');
+                            structure.push({r, c: c - 1 - i});
+                        }
+                        allMatchStructures.push({coords: structure, type: 'h', stone: board[r][c-1].stone});
+                    }
+                    count = 1;
+                }
+            }
+        }
+
+        for (let c = 0; c < GRID_SIZE; c++) {
+            let count = 1;
+            for (let r = 1; r <= GRID_SIZE; r++) {
+                if (r < GRID_SIZE && board[r][c].stone && board[r][c].stone === board[r - 1][c].stone) {
+                    count++;
+                } else {
+                    if (count >= 3) {
+                        const structure = [];
+                        for (let i = 0; i < count; i++) {
+                            addMatch(r - 1 - i, c, 'v');
+                            structure.push({r: r - 1 - i, c});
+                        }
+                        allMatchStructures.push({coords: structure, type: 'v', stone: board[r-1][c].stone});
+                    }
+                    count = 1;
+                }
+            }
+        }
+
+        const helicopterSpawns = [];
+        for (let r = 0; r < GRID_SIZE - 1; r++) {
+            for (let c = 0; c < GRID_SIZE - 1; c++) {
+                const s = board[r][c].stone;
+                if(s && s === board[r+1][c].stone && s === board[r][c+1].stone && s === board[r+1][c+1].stone) {
+                    const structure = [{r,c}, {r+1,c}, {r,c+1}, {r+1,c+1}];
+                    helicopterSpawns.push({ coords: structure, stone: s});
+                    structure.forEach(coord => addMatch(coord.r, coord.c, 'q'));
+                }
+            }
+        }
+
+        const finalMatches = Array.from(matchedCoords.values());
+        if(finalMatches.length === 0) return [];
+
+        const powerupSpawns = new Set(); 
+
+        helicopterSpawns.forEach(sq => {
+            if(!spawnPowerupAt(sq.coords, sq.coords[0].r, sq.coords[0].c, POWERUP.HELICOPTER, sq.stone, powerupSpawns, finalMatches)) {
+                spawnPowerupAt(sq.coords, sq.coords[3].r, sq.coords[3].c, POWERUP.HELICOPTER, sq.stone, powerupSpawns, finalMatches);
+            }
+        });
+
+        allMatchStructures.forEach(struct => {
+            const len = struct.coords.length;
+            const matchStone = struct.stone;
+            const intersectionPoint = findIntersection(struct.coords, finalMatches);
+            
+            if(len === 5 && !intersectionPoint) {
+                spawnPowerupAt(struct.coords, struct.coords[2].r, struct.coords[2].c, POWERUP.DISCO, matchStone, powerupSpawns, finalMatches);
+            } 
+            else if (intersectionPoint || (len >= 5)) {
+                const spawnP = intersectionPoint || struct.coords[Math.floor(len/2)];
+                spawnPowerupAt(struct.coords, spawnP.r, spawnP.c, POWERUP.TNT, matchStone, powerupSpawns, finalMatches);
+            }
+            else if (len === 4) {
+                const type = (struct.type === 'h') ? POWERUP.ROCKET_V : POWERUP.ROCKET_H;
+                spawnPowerupAt(struct.coords, struct.coords[1].r, struct.coords[1].c, type, matchStone, powerupSpawns, finalMatches);
+            }
+        });
+
+        return finalMatches;
+    }
+
+    function findIntersection(structureCoords, allMatchedCoords) {
+        for(let coord of structureCoords) {
+            const matchInfo = allMatchedCoords.find(m => m.r === coord.r && m.c === coord.c);
+            if(matchInfo && matchInfo.structures.includes('h') && matchInfo.structures.includes('v')) {
+                return coord;
+            }
+        }
+        return null;
+    }
+
+    function spawnPowerupAt(structureCoords, r, c, type, stone, spawnRegistry, explosionsList) {
+        const key = `${r},${c}`;
+        if(spawnRegistry.has(key)) return false;
+
+        board[r][c].stone = stone;
+        board[r][c].powerup = type;
+        spawnRegistry.add(key);
+
+        const idx = explosionsList.findIndex(m => m.r === r && m.c === c);
+        if(idx !== -1) explosionsList.splice(idx, 1);
+        
+        return true;
+    }
+
+    async function processMatches(matches) {
+        isProcessing = true;
+        
+        matches.forEach(({ r, c }) => {
+            const tile = board[r][c];
+            if(tile.powerup) {
+                activatePowerup(r, c, tile.powerup);
+            } else {
+                tile.element.classList.add('anim-explode');
+                tile.stone = null;
+            }
+        });
+
+        score += matches.length * 10;
+        scoreElement.textContent = score;
+
+        await new Promise(res => setTimeout(res, 400));
+        
+        matches.forEach(({ r, c }) => board[r][c].element.classList.remove('anim-explode'));
+        updateRender();
+
+        await new Promise(res => setTimeout(res, 100));
+        await applyGravityWithAnimation();
+        await fillNewStonesWithAnimation();
+        await fillAndCheckChains();
+    }
+
+    async function fillAndCheckChains() {
+        let nextMatches = findAllMatches();
+        if (nextMatches.length > 0) {
+            await processMatches(nextMatches);
+        } else {
+            isProcessing = false;
+            checkPossibleMoves();
+        }
+    }
+
+    function activatePowerup(r, c, type) {
+        if(!board[r][c].powerup) return;
+
+        const tile = board[r][c];
+        tile.powerup = null;
+        tile.stone = null;
+        tile.element.classList.add('anim-explode');
+
+        let affectedTiles = [];
+
+        switch(type) {
+            case POWERUP.ROCKET_H:
+                affectedTiles = getRow(r);
+                showEffect(r, c, 'laser-h-effect');
+                break;
+            case POWERUP.ROCKET_V:
+                affectedTiles = getCol(c);
+                showEffect(r, c, 'laser-v-effect');
+                break;
+            case POWERUP.TNT:
+                affectedTiles = getArea(r, c, 1);
+                for(let i= -2; i<=2; i++) {
+                    if(isValidCoord(r, c+i)) affectedTiles.push({r, c: c+i});
+                    if(isValidCoord(r+i, c)) affectedTiles.push({r: r+i, c});
+                }
+                showEffect(r, c, 'tnt-boom-effect');
+                break;
+            case POWERUP.HELICOPTER:
+                const target = getHelicopterTarget(r, c);
+                if(target) affectedTiles = [target];
+                break;
+            case POWERUP.DISCO:
+                const randomColor = getRandomStone();
+                activateDisco(r, c, randomColor);
+                return;
+        }
+
+        affectedTiles.forEach(coord => {
+            if(!isValidCoord(coord.r, coord.c)) return;
+            const t = board[coord.r][coord.c];
+            if(t.stone || t.powerup) {
+                if(t.powerup) {
+                     setTimeout(() => activatePowerup(coord.r, coord.c, t.powerup), 100);
+                } else {
+                    t.element.classList.add('anim-explode');
+                    t.stone = null;
+                    score += 20;
+                }
+            }
+        });
+        scoreElement.textContent = score;
+    }
+
+    function activateDisco(r, c, colorUrl) {
+        board[r][c].powerup = null;
+        board[r][c].stone = null;
+        board[r][c].element.classList.add('anim-explode');
+
+        const targets = getAllOfColor(colorUrl);
+        targets.forEach(coord => {
+            const t = board[coord.r][coord.c];
+            t.element.classList.add('anim-explode');
+            t.stone = null;
+            score += 20;
+        });
+        scoreElement.textContent = score;
+    }
+
+    async function comboPowerups(r1, c1, r2, c2, p1, p2) {
+        deselect();
+        board[r1][c1].powerup = null; board[r1][c1].stone = null;
+        board[r2][c2].powerup = null; board[r2][c2].stone = null;
+        updateRender();
+
+        let affected = [];
+        
+        if((p1.includes('rocket') && p2.includes('rocket'))) {
+            affected = [...getRow(r2), ...getCol(c2)];
+            showEffect(r2, c2, 'laser-h-effect'); showEffect(r2, c2, 'laser-v-effect');
+        }
+        else if((p1 === POWERUP.TNT && p2.includes('rocket')) || (p2 === POWERUP.TNT && p1.includes('rocket'))) {
+            for(let i=-1; i<=1; i++) {
+                affected = [...affected, ...getRow(r2+i), ...getCol(c2+i)];
+                if(isValidCoord(r2+i, c2)) showEffect(r2+i, c2, 'laser-h-effect');
+                if(isValidCoord(r2, c2+i)) showEffect(r2, c2+i, 'laser-v-effect');
+            }
+        }
+        else if(p1 === POWERUP.TNT && p2 === POWERUP.TNT) {
+            affected = getArea(r2, c2, 2);
+            showEffect(r2, c2, 'tnt-boom-effect');
+        }
+        else {
+            activatePowerup(r2, c2, p1);
+            activatePowerup(r2, c2, p2);
+            return;
+        }
+
+        affected.forEach(coord => {
+            if(!isValidCoord(coord.r, coord.c)) return;
+            const t = board[coord.r][coord.c];
+            if(t.stone) {
+                t.element.classList.add('anim-explode');
+                t.stone = null;
+                score += 15;
+            }
+        });
+        scoreElement.textContent = score;
+        await new Promise(res => setTimeout(res, 400));
+        affected.forEach(coord => {
+             if(isValidCoord(coord.r, coord.c)) board[coord.r][coord.c].element.classList.remove('anim-explode');
+        });
+    }
+
+    function isValidCoord(r, c) { return r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE; }
+    function getRow(r) { const a = []; for(let c=0; c<GRID_SIZE; c++) a.push({r,c}); return a; }
+    function getCol(c) { const a = []; for(let r=0; r<GRID_SIZE; r++) a.push({r,c}); return a; }
+    function getArea(r, c, radius) {
+        const a = [];
+        for(let i=-radius; i<=radius; i++) {
+            for(let j=-radius; j<=radius; j++) {
+                if(isValidCoord(r+i, c+j)) a.push({r:r+i, c:c+j});
+            }
+        }
+        return a;
+    }
+
+    function getHelicopterTarget(sourceR, sourceC) {
+        let targets = [];
+        board.flat().forEach((t, i) => {
+            const r = Math.floor(i / GRID_SIZE);
+            const c = i % GRID_SIZE;
+            if((r !== sourceR || c !== sourceC) && t.stone) {
+                targets.push({r, c, score: t.powerup ? 2 : 1});
+            }
+        });
+        if(targets.length === 0) return null;
+        targets.sort((a,b) => b.score - a.score || Math.random() - 0.5);
+        return targets[0];
+    }
+
+    function getAllOfColor(stoneUrl) {
+        const a = [];
+        board.flat().forEach((t, i) => {
+            if(t.stone === stoneUrl) a.push({r: Math.floor(i/GRID_SIZE), c: i%GRID_SIZE});
+        });
+        return a;
+    }
+
+    function showEffect(r, c, effectClass) {
+        const tileEl = board[r][c].element;
+        const rect = tileEl.getBoundingClientRect();
+        const containerRect = containerElement.getBoundingClientRect();
+
+        const effect = document.createElement('div');
+        effect.classList.add('effect-overlay', effectClass);
+        
+        effect.style.left = (rect.left - containerRect.left + rect.width / 2 - 30) + 'px'; 
+        effect.style.top = (rect.top - containerRect.top + rect.height / 2 - 30) + 'px';
+
+        containerElement.appendChild(effect);
+        effect.style.opacity = '1';
+
+        setTimeout(() => effect.remove(), 500);
+    }
+async function applyGravityWithAnimation() {
+        let maxFallDist = 0;
+        for (let c = 0; c < GRID_SIZE; c++) {
+            let emptyRow = GRID_SIZE - 1;
+            for (let r = GRID_SIZE - 1; r >= 0; r--) {
+                if (board[r][c].stone || board[r][c].powerup) {
+                    if (emptyRow !== r) {
+                        const fallDist = emptyRow - r;
+                        maxFallDist = Math.max(maxFallDist, fallDist);
+
+                        board[emptyRow][c].stone = board[r][c].stone;
+                        board[emptyRow][c].powerup = board[r][c].powerup;
+                        board[r][c].stone = null;
+                        board[r][c].powerup = null;
+
+                        const tileEl = board[emptyRow][c].element;
+                        const cellSize = tileEl.offsetWidth + 5;
+                        
+                        tileEl.style.transition = 'none';
+                        tileEl.style.transform = `translateY(${-fallDist * cellSize}px)`;
+                        tileEl.style.backgroundImage = board[emptyRow][c].stone ? `url(${encodeURI(board[emptyRow][c].stone)})` : 'none';
+                        
+                        tileEl.offsetHeight; 
+
+                        tileEl.style.transition = `transform ${0.1 + fallDist * 0.05}s cubic-bezier(.36,.07,.19,.97)`;
+                        tileEl.style.transform = 'translateY(0)';
+                    }
+                    emptyRow--;
+                }
+            }
+        }
+        
+        await new Promise(res => setTimeout(res, 100 + maxFallDist * 50));
+        board.flat().forEach(t => t.element.style.transition = '');
+        updateRender();
+    }
+
+    async function fillNewStonesWithAnimation() {
+        const fallAnims = [];
+        for (let c = 0; c < GRID_SIZE; c++) {
+            let missingCount = 0;
+            for (let r = GRID_SIZE - 1; r >= 0; r--) {
+                if (board[r][c].stone === null && board[r][c].powerup === null) {
+                    missingCount++;
+                    board[r][c].stone = getRandomStone();
+                    
+                    const tileEl = board[r][c].element;
+                    tileEl.style.backgroundImage = `url(${encodeURI(board[r][c].stone)})`;
+                    tileEl.classList.add('anim-fall');
+                    tileEl.style.animationDelay = `${missingCount * 0.05}s`;
+                    
+                    fallAnims.push(new Promise(res => {
+                        tileEl.addEventListener('animationend', () => {
+                            tileEl.classList.remove('anim-fall');
+                            tileEl.style.animationDelay = '';
+                            res();
+                        }, {once: true});
+                    }));
+                }
+            }
+        }
+        updateRender();
+        if(fallAnims.length > 0) await Promise.all(fallAnims);
+    }
+
+    let hintTimeout = null;
+    function checkPossibleMoves() {
+        clearTimeout(hintTimeout);
+        hintTimeout = setTimeout(showHint, 5000);
+    }
+
+    function showHint() {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if(!board[r][c].stone) continue;
+                
+                if(c < GRID_SIZE - 1) {
+                    swapTiles(r, c, r, c+1);
+                    if(findAllMatches().length > 0) {
+                        swapTiles(r, c, r, c+1);
+                        blinkHint(r, c, r, c+1); return;
+                    }
+                    swapTiles(r, c, r, c+1);
+                }
+                if(r < GRID_SIZE - 1) {
+                    swapTiles(r, c, r+1, c);
+                    if(findAllMatches().length > 0) {
+                        swapTiles(r, c, r+1, c);
+                        blinkHint(r, c, r+1, c); return;
+                    }
+                    swapTiles(r, c, r+1, c);
+                }
+            }
+        }
+    }
+
+    function blinkHint(r1, c1, r2, c2) {
+        if(isProcessing) return;
+        board[r1][c1].element.classList.add('anim-hint');
+        board[r2][c2].element.classList.add('anim-hint');
+        gridElement.addEventListener('click', clearHints, {once: true});
+        gridElement.addEventListener('touchstart', clearHints, {once: true});
+    }
+
+    function clearHints() {
+        board.flat().forEach(t => t.element.classList.remove('anim-hint'));
+    }
+
+    createBoard();
+</script>
+</body>
+</html>
