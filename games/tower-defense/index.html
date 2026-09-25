@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tower Defense</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/games/tower-defense/style.css">
     <style>
         /* Styles für das Version-Auswahl-Pop-up */
         #version-popup {
@@ -84,7 +84,7 @@
                 <!-- Startet das normale Spiel auf dieser Seite -->
                 <button class="popup-btn btn-classic" onclick="startClassicVersion()">Klassische Version (2D)</button>
                 <!-- Leitet auf die neue 3D-Handy-Version weiter (Passe den Dateinamen ggf. an!) -->
-                <a href="td_new_v2_beta.html" class="popup-btn btn-new">Neue Version (3D Mobile)</a>
+                <a href="#" class="popup-btn btn-new">Neue Version (3D) || NICHT VERFÜGBAR</a>
             </div>
         </div>
     </div>
@@ -96,7 +96,7 @@
         <div class="shop">
             <button class="tower-btn" id="btn-basic" onclick="selectTower('basic')">Turm (50€)</button>
             <button class="tower-btn" id="btn-sniper" onclick="selectTower('sniper')">Sniper (100€)</button>
-            <a href="../../index.html" class="exit-btn">Hub</a>
+            <a href="/index.html" class="exit-btn">Hub</a>
         </div>
     </div>
 
@@ -111,10 +111,10 @@
         </div>
         <button class="retry-btn" onclick="restartGame()">REVANCHE</button>
         <br>
-        <a href="../../index.html" class="exit-link">Zum Hub</a>
+        <a href="/index.html" class="exit-link">Zum Hub</a>
     </div>
 
-    <script src="game.js"></script>
+    <script src="/games/tower-defense/game.js"></script>
     <script>
         // Schließt einfach das Pop-up, sodass das geladene game.js normal läuft
         function startClassicVersion() {
