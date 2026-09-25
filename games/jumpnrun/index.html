@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Retro Adventure</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/games/jumpnrun/style.css">
 </head>
 <body>
     <div id="menu-container">
@@ -12,11 +12,11 @@
         <div id="level-grid"></div>
         
         <div id="editor-link-container" style="margin-top: 20px;">
-            <a href="editor.html" class="ui-btn" style="text-decoration: none; background: #e74c3c; color: white; display: inline-block;">🛠 LEVEL EDITOR</a>
+            <a href="/games/jumpnrun/editor.html" class="ui-btn" style="text-decoration: none; background: #e74c3c; color: white; display: inline-block;">🛠 Level Editor</a>
         </div>
 
         <hr style="width: 80%; margin: 30px 0;">
-        <a href="../../index.html" class="hub-btn">ZURÜCK ZUM HUB</a>
+        <a href="/index.html" class="hub-btn">ZURÜCK ZUM HUB</a>
     </div>
 
     <div id="game-screen" class="hidden">
@@ -30,7 +30,7 @@
                 <div id="coin-info">🪙 <span id="coin-count">0</span></div>
             </div>
             <div class="ui-row">
-                <button class="ui-btn" onclick="exitToMenu()">MENÜ</button>
+                <button class="ui-btn" onclick="exitToMenu()">Menü</button>
                 <span id="level-display">Level 1</span>
             </div>
         </div>
@@ -40,7 +40,7 @@
                 <button id="btn-left">◀</button>
                 <button id="btn-right">▶</button>
             </div>
-            <button id="btn-jump">JUMP</button>
+            <button id="btn-jump">jump</button>
         </div>
     </div>
 
@@ -48,10 +48,10 @@
         <div class="win-content">
             <h1>GEWONNEN!</h1>
             <p>Du hast alle Welten gerettet.</p>
-            <button class="ui-btn" onclick="location.reload()">ZUM START</button>
+            <button class="ui-btn" onclick="location.reload()">zum Start</button>
         </div>
     </div>
 
-    <script type="module" src="game.js"></script>
+    <script type="module" src="/games/jumpnrun/game.js"></script>
 </body>
 </html>
