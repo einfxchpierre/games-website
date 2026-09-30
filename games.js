@@ -43,25 +43,11 @@ const GAMES_DATA = [
     btn_color: "#35682D"
 },
 {
-    id: "uno",
-    game_name: "Uno",
-    path: "games/uno/index.html",
-    icon: "pictures/icons/Uno.png",
-    btn_color: "#D2691E"
-},
-{
     id: "chess",
     game_name: "Schach",
     path: "games/chess/index.html",
     icon: "pictures/icons/chess.png",
     btn_color: "#fffff"
-},
-{
-    id: "chess_multiplayer",
-    game_name: "Schach Multiplayer (KI funktioniert noch nicht)",
-    path: "games/chess/v3/index.html",
-    icon: "pictures/icons/chess.png",
-    btn_color: "#63728"
 },
 {
     id: "runner",
