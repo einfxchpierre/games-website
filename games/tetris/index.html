@@ -3,26 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tetris · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
     <link rel="stylesheet" href="/games/tetris/style.css">
 </head>
 <body>
     <div id="game-container">
-        <div id="stats">
-            <div>Punkte: <span id="score">0</span></div>
-            <a href="/" class="back-link">ZUM HUB</a>
-        </div>
-        
-        <canvas id="tetris" width="240" height="400"></canvas>
+        <aside class="panel left">
+            <a href="/" class="gh-back back-link">← Bibliothek</a>
+            <div class="stat"><span class="gh-label">Punkte</span><div class="big" id="score">0</div></div>
+            <div class="stat"><span class="gh-label">Reihen</span><div class="gh-value" id="lines">0</div></div>
+            <div class="stat"><span class="gh-label">Level</span><div class="gh-value" id="level">1</div></div>
+            <div class="stat"><span class="gh-label">Bestwert</span><div class="gh-value" id="best">0</div></div>
+        </aside>
 
-        <div id="controls">
-            <button class="btn" onclick="playerMove(-1)">◀</button>
-            <button class="btn" onclick="playerRotate(1)">↻</button>
-            <button class="btn" onclick="playerMove(1)">▶</button>
-            <button class="btn" onclick="playerDrop()">▼</button>
+        <div class="board">
+            <canvas id="tetris"></canvas>
+            <div class="gh-overlay" id="overlay">
+                <div class="gh-overlay-card">
+                    <h2 id="ovTitle">Tetris</h2>
+                    <p id="ovText">Räume volle Reihen ab.</p>
+                    <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+                </div>
+            </div>
         </div>
+
+        <aside class="panel right">
+            <div class="gh-card next-card">
+                <span class="gh-label">Nächster Stein</span>
+                <canvas id="next"></canvas>
+            </div>
+            <div class="keys">
+                <div><kbd>←</kbd><kbd>→</kbd> bewegen</div>
+                <div><kbd>↑</kbd> drehen</div>
+                <div><kbd>↓</kbd> schneller</div>
+                <div><kbd>Leertaste</kbd> fallen lassen</div>
+                <div><kbd>P</kbd> Pause</div>
+            </div>
+        </aside>
     </div>
     <script src="/games/tetris/game.js"></script>
 </body>

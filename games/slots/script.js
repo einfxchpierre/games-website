@@ -42,9 +42,9 @@ spinButton.addEventListener('click', () => {
 function checkWin(results) {
     if (results[0] === results[1] && results[1] === results[2]) {
         message.innerText = "JACKPOT! 🎉";
-        message.style.color = "#f1c40f";
+        message.style.color = "var(--gh-accent)";
     } else {
         message.innerText = "Versuch es nochmal!";
-        message.style.color = "white";
+        message.style.color = "";
     }
 }

@@ -95,6 +95,9 @@ async function startLevel(index, isNewLevel = false) {
         });
     });
 
+    // Level vertikal im Bild platzieren (Spielwelt war sonst am oberen Rand)
+    world.style.top = Math.max(0, Math.round((window.innerHeight - levelData.layout.length * config.tileSize) * 0.55)) + 'px';
+
     let start = activeCheckpoint || spawnPoint;
     pX = start.x; pY = start.y;
     vX = 0; vY = 0; isGrounded = false;

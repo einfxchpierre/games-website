@@ -1,10 +1,8 @@
 /* ==========================================================================
-   GAMEHUB – Core (Icons, Speicher, Auth, Helfer)
+   GAMEHUB – Core (Icons, Speicher, Helfer)
    ========================================================================== */
 (function () {
   "use strict";
-
-  const OAUTH_ISSUER = "https://phoenixmagie.vercel.app";
 
   /* ---------- Icons (inline SVG, Lucide-Stil) ---------- */
   const ICONS = {
@@ -126,34 +124,6 @@
     }
   };
 
-  /* ---------- Auth (Phoenixmagie OAuth) ---------- */
-  const Auth = {
-    issuer: OAUTH_ISSUER,
-    token() { try { return localStorage.getItem("access_token"); } catch (e) { return null; } },
-    profile: () => lsGet("gh_profile", null),
-    async login() {
-      try {
-        const res = await fetch(OAUTH_ISSUER + "/.well-known/oauth.json");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        localStorage.setItem("oauth_config", JSON.stringify(await res.json()));
-        window.location.href = "/login.html";
-      } catch (err) {
-        toast("Anmeldung derzeit nicht verfügbar.");
-      }
-    },
-    logout() {
-      ["access_token", "refresh_token", "gh_profile", "oauth_state"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* egal */ } });
-      window.location.href = "/";
-    },
-    userinfoEndpoint() {
-      const cfg = lsGet("oauth_config", null);
-      if (cfg && cfg.userinfo_endpoint) {
-        return cfg.userinfo_endpoint.indexOf("http") === 0 ? cfg.userinfo_endpoint : OAUTH_ISSUER + cfg.userinfo_endpoint;
-      }
-      return OAUTH_ISSUER + "/api/example.js";
-    }
-  };
-
   /* ---------- Toast ---------- */
   let toastTimer;
   function toast(msg) {
@@ -170,5 +140,5 @@
     toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
   }
 
-  window.GH = { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, Auth, toast, lsGet, lsSet };
+  window.GH = { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, toast, lsGet, lsSet };
 })();

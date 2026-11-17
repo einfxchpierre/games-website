@@ -1,0 +1,135 @@
+/* ==========================================================================
+   GAMEHUB – Gemeinsames Spiele-Theme
+   Wird von allen Spielen eingebunden. Farben = Launcher-Farben.
+   ========================================================================== */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --gh-bg: #06020a;
+  --gh-bg-2: #0a0410;
+  --gh-glow: #3a0d41;
+  --gh-card: #1b1023;
+  --gh-card-2: #190f21;
+  --gh-chip: #302137;
+  --gh-active: #18151b;
+  --gh-line: #1e1924;
+  --gh-line-strong: #322f34;
+
+  --gh-text: #f6f2f9;
+  --gh-text-2: #b9afc4;
+  --gh-text-3: #857a91;
+
+  --gh-accent: #e254d6;
+  --gh-accent-2: #b146e6;
+  --gh-accent-soft: rgba(226, 84, 214, 0.14);
+  --gh-accent-glow: rgba(226, 84, 214, 0.4);
+  --gh-neg: #ff5470;
+  --gh-pos: #3ddc97;
+  --gh-warn: #ffc857;
+  --gh-cyan: #38bdf8;
+
+  --gh-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gh-radius: 14px;
+  --gh-radius-lg: 18px;
+  --gh-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html { background: var(--gh-bg); }
+body {
+  font-family: var(--gh-font) !important;
+  color: var(--gh-text);
+  background:
+    radial-gradient(120% 60% at 0% 100%, var(--gh-glow) 0%, rgba(58, 13, 65, 0.5) 30%, rgba(58, 13, 65, 0) 70%),
+    var(--gh-bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--gh-accent-soft); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--gh-chip); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- Buttons ---------- */
+.gh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--gh-line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gh-text);
+  font: 600 14px var(--gh-font);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.gh-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: #4a454e; }
+.gh-btn:active { transform: scale(0.97); }
+.gh-btn-white { background: #fff; border-color: #fff; color: #120816; }
+.gh-btn-white:hover { background: #ece6ef; border-color: #ece6ef; }
+.gh-btn-accent { background: var(--gh-accent); border-color: var(--gh-accent); color: #fff; }
+.gh-btn-accent:hover { background: #ea6ce0; border-color: #ea6ce0; }
+.gh-btn-sm { height: 32px; padding: 0 13px; font-size: 13px; }
+
+/* Einheitlicher "Zurück"-Link in allen Spielen */
+.gh-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border: 1px solid var(--gh-line-strong);
+  border-radius: 999px;
+  background: rgba(10, 4, 16, 0.6);
+  backdrop-filter: blur(8px);
+  color: var(--gh-text-2) !important;
+  font: 600 13px var(--gh-font) !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  transition: color .15s, border-color .15s;
+}
+.gh-back:hover { color: var(--gh-text) !important; border-color: #4a454e; }
+
+/* ---------- Karten / Panels ---------- */
+.gh-card {
+  border: 1px solid var(--gh-line);
+  border-radius: var(--gh-radius-lg);
+  background: linear-gradient(180deg, var(--gh-card), var(--gh-card-2));
+}
+.gh-label { color: var(--gh-text-2); font-size: 12.5px; font-weight: 500; }
+.gh-value { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+/* ---------- Overlay (Game Over, Pause …) ---------- */
+.gh-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 2, 10, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+}
+.gh-overlay-card {
+  min-width: 260px;
+  padding: 26px 28px;
+  border: 1px solid var(--gh-line-strong);
+  border-radius: var(--gh-radius-lg);
+  background: var(--gh-card);
+  text-align: center;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7);
+}
+.gh-overlay-card h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; }
+.gh-overlay-card p { margin: 0 0 18px; color: var(--gh-text-2); }
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--gh-line-strong);
+  border-radius: 5px;
+  font: 500 11px var(--gh-font);
+  color: var(--gh-text-2);
+}

@@ -1,13 +1,5 @@
 {
   "cleanUrls": true,
-  "functions": {
-    "api/*.php": {
-      "runtime": "vercel-php@0.7.3"
-    }
-  },
-  "rewrites": [
-    { "source": "/api/callback", "destination": "/api/callback.php" }
-  ],
   "headers": [
     {
       "source": "/:path*",

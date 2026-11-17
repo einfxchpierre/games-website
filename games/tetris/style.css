@@ -1,49 +1,33 @@
-* { box-sizing: border-box; touch-action: none; user-select: none; }
-body {
-    background: #202028;
-    color: #fff;
-    font-family: sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
+/* Tetris – GAMEHUB-Design */
+* { box-sizing: border-box; user-select: none; }
+body { margin: 0; height: 100vh; overflow: hidden; display: grid; place-items: center; }
 
-#game-container { text-align: center; }
-
-#stats {
-    display: flex;
-    justify-content: space-between;
-    width: 240px;
-    margin-bottom: 10px;
-    font-size: 20px;
-}
-
-canvas {
-    border: 4px solid #fff;
-    background-color: #000;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-}
-
-.back-link { color: #888; text-decoration: none; font-size: 14px; }
-
-#controls {
-    margin-top: 20px;
+#game-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    width: 240px;
+    grid-template-columns: 200px auto 200px;
+    gap: 40px;
+    align-items: start;
 }
 
-.btn {
-    background: #444;
-    color: white;
-    border: none;
-    padding: 15px;
-    font-size: 20px;
-    border-radius: 10px;
-    cursor: pointer;
-}
+.panel { display: flex; flex-direction: column; gap: 22px; padding-top: 4px; }
+.panel.left { align-items: flex-start; }
+.back-link { margin-bottom: 8px; }
+.big { font-size: 48px; font-weight: 800; letter-spacing: -0.05em; line-height: 1.05; font-variant-numeric: tabular-nums; }
 
-.btn:active { background: #666; }
+.board {
+    position: relative;
+    height: min(88vh, 800px);
+    aspect-ratio: 12 / 20;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--gh-line-strong);
+    background: var(--gh-card);
+    box-shadow: 0 40px 100px -40px var(--gh-accent-glow);
+}
+#tetris { display: block; width: 100%; height: 100%; }
+
+.next-card { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+#next { width: 100%; aspect-ratio: 1; display: block; }
+
+.keys { display: flex; flex-direction: column; gap: 10px; color: var(--gh-text-3); font-size: 13px; }
+.keys kbd { margin-right: 3px; }

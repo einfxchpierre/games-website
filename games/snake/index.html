@@ -3,30 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
     <link rel="stylesheet" href="/games/snake/style.css">
 </head>
 <body>
 
     <div class="game-wrapper">
         <div class="header">
-            <span class="score-board">Score: <span id="currentScore">0</span></span>
-        </div>
-
-        <canvas id="snakeCanvas" width="400" height="400"></canvas>
-
-        <div class="mobile-controls">
-            <button class="ctrl-btn" id="btnUp">▲</button>
-            <div class="mid-row">
-                <button class="ctrl-btn" id="btnLeft">◀</button>
-                <button class="ctrl-btn" id="btnDown">▼</button>
-                <button class="ctrl-btn" id="btnRight">▶</button>
+            <a href="/" class="gh-back exit-link">← Bibliothek</a>
+            <div class="scores">
+                <div><span class="gh-label">Punkte</span><div class="gh-value" id="currentScore">0</div></div>
+                <div><span class="gh-label">Bestwert</span><div class="gh-value" id="bestScore">0</div></div>
             </div>
         </div>
-        
-        <a href="/" class="exit-link">Zurück zum Hub</a>
+
+        <div class="board">
+            <canvas id="snakeCanvas"></canvas>
+            <div class="gh-overlay" id="overlay">
+                <div class="gh-overlay-card">
+                    <h2 id="ovTitle">Snake</h2>
+                    <p id="ovText">Steuere mit den Pfeiltasten oder WASD.</p>
+                    <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+                </div>
+            </div>
+        </div>
+
+        <p class="hint"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steuern · <kbd>Leertaste</kbd> Pause</p>
     </div>
 
     <script src="/games/snake/game.js"></script>

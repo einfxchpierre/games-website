@@ -4,7 +4,7 @@
 (function () {
   "use strict";
 
-  const { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, Auth, toast, lsSet } = window.GH;
+  const { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, toast } = window.GH;
   const GAMES = window.GAMES_DATA || [];
   const COLORS = window.CATEGORY_COLORS || {};
   const BY_ID = Object.fromEntries(GAMES.map((g) => [g.id, g]));
@@ -25,7 +25,7 @@
      ========================================================================== */
   function readHash() {
     const h = decodeURIComponent(location.hash.replace(/^#/, ""));
-    state.view = h === "konto" ? "account" : "library";
+    state.view = h === "profil" || h === "konto" ? "account" : "library";
     state.filter = h === "favoriten" ? "favs" : h === "zuletzt" ? "recent" : "all";
     state.category = h.indexOf("kategorie=") === 0 ? h.slice(10) : "";
   }
@@ -73,13 +73,10 @@
     const item = (key, href, ic, label, extra) =>
       '<a class="nav-item" href="' + href + '" data-nav="' + key + '">' + icon(ic) + "<span>" + label + "</span>" + (extra || "") + "</a>";
 
-    const loggedIn = !!Auth.token();
-    const p = Auth.profile();
-    const name = loggedIn ? (p && (p.visual_name || p.username)) || "Angemeldet" : "Gast";
-    const sub = loggedIn ? (p && p.username ? "@" + p.username : "Phoenixmagie") : "Nicht angemeldet";
-    const avatar = loggedIn && p && p.avatar
-      ? '<img class="avatar" src="' + esc(p.avatar) + '" alt="">'
-      : '<span class="avatar">' + esc(initials(name) || "G") + "</span>";
+    const name = playerName();
+    const sessions = Store.plays().length;
+    const sub = sessions ? fmt(sessions) + (sessions === 1 ? " Session" : " Sessions") : "Lokales Profil";
+    const avatar = '<span class="avatar">' + esc(initials(name) || "S") + "</span>";
 
     $("sidebar").innerHTML =
       '<a class="brand" href="#">' + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h4M8 10v4"/><path d="M15 13h.01M18 11h.01"/><rect x="2" y="6" width="20" height="12" rx="5"/></svg>' + "GAMEHUB</a>" +
@@ -89,7 +86,7 @@
       item("all", "#", "library", "Bibliothek", '<span class="count">' + GAMES.length + "</span>") +
       item("favs", "#favoriten", "star", "Favoriten", favCount ? '<span class="count">' + favCount + "</span>" : "") +
       item("recent", "#zuletzt", "clock", "Zuletzt gespielt") +
-      item("account", "#konto", "user", "Konto") +
+      item("account", "#profil", "user", "Profil") +
       '<div class="nav-divider"></div><div class="nav-label">Kategorien</div>' +
       Object.keys(cats).sort().map((c) =>
         '<a class="nav-item" href="#kategorie=' + encodeURIComponent(c) + '" data-nav="cat:' + esc(c) + '">' +
@@ -99,10 +96,8 @@
       '<div class="sidebar-foot">' +
       '<button class="nav-item" type="button" data-settings>' + icon("settings") + "<span>Einstellungen</span></button>" +
       '<div class="user">' + avatar +
-      '<a class="user-meta" href="#konto"><strong>' + esc(name) + "</strong><small>" + esc(sub) + "</small></a>" +
-      (loggedIn
-        ? '<a class="icon-btn" href="#konto" aria-label="Konto">' + icon("eye") + "</a>"
-        : '<button class="icon-btn" type="button" data-login aria-label="Anmelden">' + icon("login") + "</button>") +
+      '<a class="user-meta" href="#profil"><strong>' + esc(name) + "</strong><small>" + esc(sub) + "</small></a>" +
+      '<a class="icon-btn" href="#profil" aria-label="Profil">' + icon("eye") + "</a>" +
       "</div></div>";
 
     const search = $("search");
@@ -229,36 +224,34 @@
   }
 
   /* ==========================================================================
-     Konto
+     Profil (lokal, ohne Login)
      ========================================================================== */
-  function renderAccount() {
-    const loggedIn = !!Auth.token();
-    $("accountActions").innerHTML = loggedIn
-      ? '<a class="btn" href="#">Zur Bibliothek</a><button class="btn btn-white" type="button" data-logout>' + icon("logout") + "Abmelden</button>"
-      : '<a class="btn" href="#">Zur Bibliothek</a><button class="btn btn-white" type="button" data-login>' + icon("login") + "Anmelden</button>";
+  function playerName() {
+    const n = (Store.settings().name || "").trim();
+    return n || "Spieler";
+  }
 
-    if (!loggedIn) {
-      $("profileCard").innerHTML =
-        '<div class="profile"><span class="avatar">G</span><div><h2>Du spielst als Gast</h2>' +
-        "<p>Melde dich mit deinem Phoenixmagie-Konto an, um Level, XP, Aurum und Mana zu sehen.</p></div></div>" +
-        '<div style="padding:0 24px 24px"><button class="btn btn-accent" type="button" data-login>' + icon("login") + "Mit Phoenixmagie anmelden</button></div>";
-    } else {
-      const sk = '<span class="skeleton"></span>';
-      $("profileCard").innerHTML =
-        '<div class="profile"><span class="avatar" id="pAvatar">?</span><div style="min-width:0"><h2 id="pName">' + sk + '</h2><p id="pUser">' + sk + "</p></div></div>" +
-        '<p class="bio" id="pBio"></p>' +
-        '<div class="stats">' +
-        '<div class="stat"><div class="stat-label">Level</div><div class="stat-value" id="pLevel">' + sk + '</div><div class="xp-bar"><span id="pXpBar"></span></div></div>' +
-        '<div class="stat"><div class="stat-label">XP</div><div class="stat-value" id="pXp">' + sk + "</div></div>" +
-        '<div class="stat"><div class="stat-label">Aurum</div><div class="stat-value" id="pAurum">' + sk + "</div></div>" +
-        '<div class="stat"><div class="stat-label">Mana</div><div class="stat-value" id="pMana">' + sk + "</div></div></div>";
-      const cached = Auth.profile();
-      if (cached) fillProfile(cached);
-      loadProfile();
-    }
+  function renderAccount() {
+    const name = playerName();
+    const plays = Store.plays();
+    const since = plays.length ? new Date(plays[0].t).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" }) : null;
+    $("accountActions").innerHTML = '<a class="btn" href="#">Zur Bibliothek</a><button class="btn btn-white" type="button" data-random>' + icon("shuffle") + "Zufallsspiel</button>";
+
+    $("profileCard").innerHTML =
+      '<div class="profile"><span class="avatar">' + esc(initials(name) || "S") + "</span>" +
+      '<div style="min-width:0;flex:1"><h2>' + esc(name) + "</h2><p>" + (since ? "Spielt seit " + since : "Noch keine Sessions") + " · Lokales Profil</p></div></div>" +
+      '<form class="name-form" id="nameForm"><label class="sr-only" for="nameInput">Spielername</label>' +
+      '<input id="nameInput" maxlength="24" placeholder="Spielername" value="' + esc(Store.settings().name || "") + '" autocomplete="off" spellcheck="false">' +
+      '<button class="btn" type="submit">Speichern</button></form>';
+    $("nameForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      Store.setSetting("name", $("nameInput").value.trim().slice(0, 24));
+      toast("Name gespeichert");
+      renderSidebar();
+      renderAccount();
+    });
 
     // Lokale Aktivität
-    const plays = Store.plays();
     const per = Store.perGame();
     const totalTime = Object.values(Store.time()).reduce((a, b) => a + b, 0);
     const played = GAMES.filter((g) => per[g.id] && per[g.id].count).length;
@@ -277,43 +270,7 @@
           '<div><div style="font-weight:600">' + esc(g.name) + "</div><small>" + esc(g.category) + " · " + relTime(per[g.id].last) + "</small></div>" +
           '<div class="num">' + fmt(per[g.id].count) + "×<small>" + duration(per[g.id].time) + "</small></div></div>"
         ).join("")
-      : '<div class="empty" style="padding:8px 22px 24px">Starte ein Spiel – deine Favoriten tauchen dann hier auf.</div>';
-  }
-
-  function fillProfile(d) {
-    const name = d.visual_name || d.username || "Unbekannt";
-    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-    set("pName", name);
-    set("pUser", "@" + (d.username || "user"));
-    set("pBio", d.beschreibung || "Keine Beschreibung angegeben.");
-    set("pLevel", fmt(d.level ?? 0));
-    set("pXp", fmt(d.xp ?? 0));
-    set("pAurum", fmt(d.aurum ?? 0));
-    set("pMana", fmt(d.mana ?? 0));
-    const bar = $("pXpBar");
-    if (bar) setTimeout(() => { bar.style.width = Math.min(100, ((Number(d.xp) || 0) % 1000) / 10) + "%"; }, 60);
-    const av = $("pAvatar");
-    if (av) {
-      if (d.avatar) av.outerHTML = '<img class="avatar" id="pAvatar" src="' + esc(d.avatar) + '" alt="">';
-      else av.textContent = initials(name);
-    }
-  }
-
-  async function loadProfile() {
-    try {
-      const res = await fetch(Auth.userinfoEndpoint(), { headers: { Authorization: "Bearer " + Auth.token() } });
-      if (!res.ok) throw new Error("Token ungültig");
-      const d = await res.json();
-      lsSet("gh_profile", {
-        username: d.username, visual_name: d.visual_name, avatar: d.avatar, beschreibung: d.beschreibung,
-        level: d.level, xp: d.xp, aurum: d.aurum, mana: d.mana
-      });
-      fillProfile(d);
-      renderSidebar();
-    } catch (err) {
-      toast("Sitzung abgelaufen – bitte erneut anmelden.");
-      setTimeout(() => Auth.logout(), 1500);
-    }
+      : '<div class="empty" style="padding:8px 22px 24px">Starte ein Spiel – deine Lieblingsspiele tauchen dann hier auf.</div>';
   }
 
   /* ==========================================================================
@@ -400,14 +357,13 @@
   function openSettings() {
     const modal = $("settingsModal");
     const s = Store.settings();
-    const loggedIn = !!Auth.token();
     modal.innerHTML =
       '<div class="modal-card">' +
       '<div class="modal-head"><h2 id="settingsTitle">Einstellungen</h2><button class="icon-btn" type="button" data-close-modal aria-label="Schließen">' + icon("x") + "</button></div>" +
       '<div class="setting"><div><strong>Spiele im Vollbild starten</strong><span>Launcher wechselt beim Start automatisch ins Vollbild</span></div>' +
       '<label class="switch"><input type="checkbox" id="setFs"' + (s.fullscreen ? " checked" : "") + '><i></i></label></div>' +
-      '<div class="setting"><div><strong>Konto</strong><span>' + (loggedIn ? "Mit Phoenixmagie verbunden" : "Nicht angemeldet") + "</span></div>" +
-      (loggedIn ? '<button class="btn btn-sm" type="button" data-logout>Abmelden</button>' : '<button class="btn btn-sm btn-accent" type="button" data-login>Anmelden</button>') + "</div>" +
+      '<div class="setting"><div><strong>Spielername</strong><span>' + esc(playerName()) + "</span></div>" +
+      '<a class="btn btn-sm" href="#profil" data-close-modal>Ändern</a></div>' +
       '<div class="setting"><div><strong>Lokale Daten</strong><span>Sessions, Spielzeit und Favoriten löschen</span></div>' +
       '<button class="btn btn-sm" type="button" data-reset style="color:var(--neg)">' + icon("trash") + "Zurücksetzen</button></div>" +
       "</div>";
@@ -461,7 +417,7 @@
     });
 
     document.addEventListener("click", (e) => {
-      const t = e.target.closest("[data-launch],[data-select],[data-fav],[data-random],[data-fullscreen],[data-settings],[data-close-modal],[data-login],[data-logout],[data-reset],[data-close-player],[data-reload-player],[data-goto]");
+      const t = e.target.closest("[data-launch],[data-select],[data-fav],[data-random],[data-fullscreen],[data-settings],[data-close-modal],[data-reset],[data-close-player],[data-reload-player],[data-goto]");
       if (e.target === $("settingsModal")) closeModal();
       if (!t) return;
       if (t.matches("[data-launch]")) { e.stopPropagation(); select(t.dataset.launch, false); launch(t.dataset.launch); }
@@ -475,8 +431,6 @@
       else if (t.matches("[data-fullscreen]")) toggleFullscreen();
       else if (t.matches("[data-settings]")) openSettings();
       else if (t.matches("[data-close-modal]")) closeModal();
-      else if (t.matches("[data-login]")) Auth.login();
-      else if (t.matches("[data-logout]")) Auth.logout();
       else if (t.matches("[data-reset]")) {
         if (confirm("Alle lokalen Sessions, Spielzeiten und Favoriten löschen?")) {
           Store.reset(); closeModal(); toast("Lokale Daten zurückgesetzt"); renderSidebar(); render();

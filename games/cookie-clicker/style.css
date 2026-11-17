@@ -1,79 +1,84 @@
+/* Cookie Clicker – GAMEHUB-Design */
 :root {
-    --main-red: #e60000;
-    --dark-bg: #121212;
-    --card-bg: #1e1e1e;
-    --cookie-color: #d2a679;
+    --cookie-color: #d9a86c;
     --cookie-dark: #8b5a2b;
-    --choco-chip: #3d2b1f;
+    --choco-chip: #3d2418;
 }
 
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Roboto, sans-serif;
-    background: var(--dark-bg);
-    color: white;
     height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
-/* Layout-Container */
-.game-container {
-    display: flex;
-    flex: 1;
-    height: 100%;
-    overflow: hidden; /* Verhindert doppeltes Scrollen am PC */
-}
+.game-container { display: flex; flex: 1; height: 100%; overflow: hidden; }
 
-/* --- LINKE SEITE: KLICK-BEREICH --- */
+/* --- Klick-Bereich --- */
 .click-section {
+    position: relative;
     flex: 1.5;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background: radial-gradient(circle at center, #1a1a1a 0%, #121212 100%);
+    padding: 32px;
+    isolation: isolate;
+}
+.click-section::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 55%;
+    width: 520px; height: 520px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(226, 84, 214, 0.22), transparent 65%);
+    z-index: -1;
 }
 
-#cookie-count { 
-    font-size: clamp(1.8rem, 5vw, 3.5rem); 
-    margin: 0; 
-    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+#cookie-count {
+    margin: 6px 0 0;
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    font-variant-numeric: tabular-nums;
 }
 
-#cps-display { 
-    color: var(--main-red); 
-    margin: 5px 0 20px 0; 
-    font-weight: bold;
-    font-size: 1.1rem;
+#cps-display {
+    margin: 8px 0 34px;
+    color: var(--gh-accent);
+    font-weight: 500;
+    font-size: 15px;
 }
 
-/* DER CSS KEKS */
 #cookie-container {
-    width: clamp(200px, 40vh, 300px);
-    height: clamp(200px, 40vh, 300px);
+    width: clamp(220px, 42vh, 320px);
+    height: clamp(220px, 42vh, 320px);
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     user-select: none;
-    transition: transform 0.05s cubic-bezier(0, 0, 0.2, 1);
+    transition: transform 0.08s cubic-bezier(0, 0, 0.2, 1);
 }
+#cookie-container:hover { transform: scale(1.03); }
+#cookie-container:active { transform: scale(0.93); }
 
 #cookie-css {
     position: relative;
     width: 90%;
     height: 90%;
-    background: radial-gradient(circle at 35% 35%, var(--cookie-color), var(--cookie-dark));
+    background: radial-gradient(circle at 35% 30%, #f0c48c, var(--cookie-color) 40%, var(--cookie-dark));
     border-radius: 50%;
-    border: 4px solid #5d3a1a;
-    box-shadow: inset -8px -8px 15px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.6);
+    box-shadow:
+        inset -10px -12px 24px rgba(0, 0, 0, 0.35),
+        inset 8px 8px 18px rgba(255, 230, 190, 0.25),
+        0 30px 60px -20px rgba(0, 0, 0, 0.8),
+        0 0 0 10px rgba(226, 84, 214, 0.06),
+        0 0 80px -10px var(--gh-accent-glow);
 }
 
 .chip {
@@ -82,10 +87,8 @@ body {
     width: 14%;
     height: 12%;
     border-radius: 40% 60% 70% 30% / 50% 40% 60% 50%;
-    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.6);
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.6);
 }
-
-/* Positionen der Chips relativ in % */
 .c1 { top: 20%; left: 25%; }
 .c2 { top: 15%; left: 55%; transform: rotate(45deg); }
 .c3 { top: 45%; left: 40%; transform: rotate(-10deg); }
@@ -93,93 +96,53 @@ body {
 .c5 { top: 55%; left: 70%; transform: rotate(20deg); }
 .c6 { top: 75%; left: 45%; transform: rotate(-30deg); }
 
-#cookie-container:active { transform: scale(0.92); }
+.back-btn { margin-top: 40px; }
 
-/* --- RECHTE SEITE: SHOP --- */
+/* --- Shop --- */
 .shop-section {
     flex: 1;
-    background: var(--card-bg);
-    border-left: 2px solid #333;
-    padding: 20px;
-    overflow-y: auto; /* Shop ist separat scrollbar */
+    max-width: 480px;
+    padding: 32px 28px;
+    overflow-y: auto;
+    border-left: 1px solid var(--gh-line);
+    background: rgba(10, 4, 16, 0.55);
 }
 
-h2 {
-    border-bottom: 2px solid var(--main-red);
-    padding-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+.shop-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--gh-line);
 }
+h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
 
 .upgrade-item {
-    background: #2a2a2a;
-    margin-bottom: 12px;
-    padding: 15px;
-    border-radius: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 10px;
+    padding: 16px 18px;
+    border: 1px solid var(--gh-line);
+    border-radius: var(--gh-radius);
+    background: linear-gradient(180deg, var(--gh-card), var(--gh-card-2));
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: 0.2s;
+    transition: border-color .15s, transform .15s, box-shadow .2s;
 }
+.upgrade-item:hover { border-color: var(--gh-accent); box-shadow: 0 10px 30px -18px var(--gh-accent-glow); transform: translateY(-1px); }
+.upgrade-item:active { transform: scale(0.99); }
+.upgrade-item.locked { opacity: 0.4; cursor: not-allowed; }
+.upgrade-item.locked:hover { border-color: var(--gh-line); box-shadow: none; transform: none; }
 
-@media (hover: hover) {
-    .upgrade-item:hover { border-color: var(--main-red); background: #333; }
-}
-
-.upgrade-item.locked { 
-    opacity: 0.3; 
-    cursor: not-allowed; 
-    filter: grayscale(1);
-}
-
-.item-name { font-weight: bold; display: block; font-size: 1.1rem; }
-.item-price { color: var(--main-red); font-size: 0.9rem; font-weight: bold; }
-.item-amount { font-size: 1.8rem; font-weight: bold; opacity: 0.15; }
-
-.back-btn { margin-top: 30px; color: #666; text-decoration: none; font-size: 0.9rem; transition: 0.2s; }
-.back-btn:hover { color: white; }
-
-/* --- RESPONSIVE BREAKPOINTS --- */
-
-/* TABLET (iPad etc.) */
-@media (max-width: 1024px) {
-    .click-section { flex: 1.2; }
-    #cookie-container { width: 220px; height: 220px; }
-}
-
-/* SMARTPHONE (Portrait) */
-@media (max-width: 768px) {
-    .game-container {
-        flex-direction: column;
-        overflow-y: auto; /* Ganze Seite scrollt auf dem Handy */
-    }
-
-    .click-section {
-        flex: none;
-        height: 70vh; /* Keks bekommt festen Platz oben */
-        border-right: none;
-        border-bottom: 2px solid #333;
-    }
-
-    .shop-section {
-        flex: none;
-        height: auto;
-        border-left: none;
-        padding: 20px 15px;
-    }
-
-    #cookie-container { width: 180px; height: 180px; }
-    
-    .upgrade-item {
-        padding: 12px;
-    }
-}
-
-/* GANZ KLEINE HANDYS */
-@media (max-width: 400px) {
-    #cookie-count { font-size: 1.8rem; }
-    #cookie-container { width: 150px; height: 150px; }
-    .upgrade-item { border-radius: 10px; }
+.item-name { display: block; font-weight: 600; font-size: 15px; }
+.item-price { display: inline-block; margin-top: 4px; color: var(--gh-accent); font-size: 13px; font-weight: 500; }
+.item-amount {
+    min-width: 44px; height: 32px; padding: 0 10px;
+    display: grid; place-items: center;
+    border-radius: 8px;
+    background: var(--gh-chip);
+    color: var(--gh-text-2);
+    font-size: 15px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }

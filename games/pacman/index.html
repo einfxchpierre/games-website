@@ -2,137 +2,58 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
+    <script src="/assets/js/device-guard.js">
+  // Initiales Bild hinter dem Startdialog
+  map = JSON.parse(JSON.stringify(initialMap));
+  fitCanvas();
+</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, orientation=landscape">
   <title>Pac Man · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/game.css">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { display: grid; place-items: center; min-height: 100vh; overflow: hidden; }
+    #game-container { width: min(94vw, 1180px); display: flex; flex-direction: column; gap: 16px; }
+    .game-area { position: relative; width: 100%; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; }
+    .header .scores { display: flex; gap: 32px; text-align: right; }
+    .board {
+      position: relative;
+      border-radius: 22px; overflow: hidden;
+      border: 1px solid var(--gh-line-strong);
+      background: #0a0410;
+      box-shadow: 0 40px 100px -40px var(--gh-accent-glow);
     }
-    body {
-      background-color: #0d0d1a;
-      color: #fff;
-      font-family: 'Courier New', Courier, monospace;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
-    #game-container {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      max-width: 900px;
-      padding: 10px;
-      gap: 20px;
-    }
-    .game-area {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      max-width: 540px;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      margin-bottom: 10px;
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-    canvas {
-      background: #000;
-      border: 4px solid #1919a6;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(25, 25, 166, 0.6);
-      touch-action: none;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 540 / 300;
-    }
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(3, 60px);
-      grid-template-rows: repeat(3, 60px);
-      gap: 6px;
-    }
-    .btn {
-      background: #1f1f3a;
-      border: 2px solid #3b3b6d;
-      border-radius: 12px;
-      color: #ffcc00;
-      font-size: 1.6rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-    .btn:active {
-      background: #ffcc00;
-      color: #000;
-    }
-    .btn-up { grid-column: 2; grid-row: 1; }
-    .btn-left { grid-column: 1; grid-row: 2; }
-    .btn-right { grid-column: 3; grid-row: 2; }
-    .btn-down { grid-column: 2; grid-row: 3; }
-
-    #overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.88);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    #overlay h1 {
-      color: #ffcc00;
-      font-size: 2.8rem;
-      margin-bottom: 10px;
-      text-shadow: 0 0 10px #ffcc00;
-    }
-    #overlay p {
-      margin-bottom: 20px;
-      color: #aaa;
-    }
-    #overlay button {
-      padding: 12px 30px;
-      font-size: 1.2rem;
-      font-family: inherit;
-      background: #ffcc00;
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 0 10px #ffcc00;
-    }
-    @media (max-width: 768px) {
-      #game-container { flex-direction: column; }
-      .controls { margin-top: 10px; }
-    }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 540 / 300; }
+    .controls { display: none; }
+    .hint { text-align: center; color: var(--gh-text-3); font-size: 13px; }
+    #overlay { position: absolute; }
+    #overlay h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -0.04em; }
+    #overlay p { margin: 0 0 18px; color: var(--gh-text-2); }
   </style>
 </head>
 <body>
 
   <div id="game-container">
-    <div class="game-area">
-      <div class="header">
-        <div>SCORE: <span id="score">0</span></div>
-        <div>LIVES: <span id="lives">3</span></div>
+    <div class="header">
+      <a href="/" class="gh-back">← Bibliothek</a>
+      <div class="scores">
+        <div><span class="gh-label">Punkte</span><div class="gh-value" id="score">0</div></div>
+        <div><span class="gh-label">Leben</span><div class="gh-value" id="lives">3</div></div>
       </div>
-      <canvas id="canvas" width="540" height="300"></canvas>
     </div>
+    <div class="board game-area">
+      <canvas id="canvas"></canvas>
+      <div id="overlay" class="gh-overlay">
+        <div class="gh-overlay-card">
+          <h1 id="overlay-title">Pac Man</h1>
+          <p id="overlay-sub">Friss alle Punkte und entkomme den Geistern.</p>
+          <button id="start-btn" class="gh-btn gh-btn-white">Spiel starten</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steuern · <kbd>Enter</kbd> starten</p>
 
     <div class="controls">
       <button class="btn btn-up" id="btn-up">▲</button>
@@ -142,16 +63,21 @@
     </div>
   </div>
 
-  <div id="overlay">
-    <h1 id="overlay-title">PAC-MAN</h1>
-    <p id="overlay-sub">Querformat Edition</p>
-    <button id="start-btn">SPIEL STARTEN</button>
-  </div>
 
 <script>
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const TILE_SIZE = 20;
+  const W = 540, H = 300; // logische Spielfläche
+  function fitCanvas() {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.width * (H / W) * dpr);
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    if (map.length) draw();
+  }
+  window.addEventListener('resize', fitCanvas);
 
   const initialMap = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -177,10 +103,10 @@
   const pacman = { x: 13 * TILE_SIZE, y: 12 * TILE_SIZE, speed: 2, dx: 0, dy: 0, nextDx: 0, nextDy: 0, mouth: 0.2, mouthSpeed: 0.02 };
 
   const ghosts = [
-    { type: 'blinky', x: 13 * TILE_SIZE, y: 6 * TILE_SIZE, dx: -1, dy: 0, color: '#ff0000' },
-    { type: 'pinky',  x: 12 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#ffb8ff' },
-    { type: 'inky',   x: 13 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#00ffff' },
-    { type: 'clyde',  x: 14 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#ffb852' }
+    { type: 'blinky', x: 13 * TILE_SIZE, y: 6 * TILE_SIZE, dx: -1, dy: 0, color: '#ff5470' },
+    { type: 'pinky',  x: 12 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#e254d6' },
+    { type: 'inky',   x: 13 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#38bdf8' },
+    { type: 'clyde',  x: 14 * TILE_SIZE, y: 8 * TILE_SIZE, dx: 0, dy: -1, color: '#ff8e3c' }
   ];
 
   function isWall(gx, gy) {
@@ -240,8 +166,8 @@
     pacman.x += pacman.dx * pacman.speed;
     pacman.y += pacman.dy * pacman.speed;
 
-    if (pacman.x < 0) pacman.x = canvas.width - TILE_SIZE;
-    if (pacman.x >= canvas.width) pacman.x = 0;
+    if (pacman.x < 0) pacman.x = W - TILE_SIZE;
+    if (pacman.x >= W) pacman.x = 0;
 
     ghosts.forEach(ghost => {
       if (ghost.x % TILE_SIZE === 0 && ghost.y % TILE_SIZE === 0) {
@@ -278,8 +204,8 @@
       ghost.x += ghost.dx * (frightenedTimer > 0 ? 1 : 2);
       ghost.y += ghost.dy * (frightenedTimer > 0 ? 1 : 2);
 
-      if (ghost.x < 0) ghost.x = canvas.width - TILE_SIZE;
-      if (ghost.x >= canvas.width) ghost.x = 0;
+      if (ghost.x < 0) ghost.x = W - TILE_SIZE;
+      if (ghost.x >= W) ghost.x = 0;
 
       const distToPacman = Math.hypot((pacman.x) - (ghost.x), (pacman.y) - (ghost.y));
       if (distToPacman < TILE_SIZE * 0.7) {
@@ -303,40 +229,81 @@
   }
 
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0410';
+    ctx.fillRect(0, 0, W, H);
+    const t = performance.now();
 
-    for (let r = 0; r < map.length; r++) {
-      for (let c = 0; c < map[r].length; c++) {
-        if (map[r][c] === 1) {
-          ctx.fillStyle = '#1919a6';
-          ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        } else if (map[r][c] === 0 || map[r][c] === 3) {
-          ctx.fillStyle = '#ffb8ae';
-          ctx.beginPath();
-          ctx.arc(c * TILE_SIZE + 10, r * TILE_SIZE + 10, map[r][c] === 3 ? 6 : 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
+    // Wände: dunkle Füllung + leuchtende Kanten zu freien Feldern
+    ctx.fillStyle = '#1b1023';
+    for (let r = 0; r < map.length; r++) for (let c = 0; c < map[r].length; c++) {
+      if (map[r][c] === 1) ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+    ctx.save();
+    ctx.strokeStyle = '#e254d6';
+    ctx.lineWidth = 1.6;
+    ctx.shadowColor = '#e254d6';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    const open = (r, c) => r >= 0 && r < map.length && c >= 0 && c < map[0].length && map[r][c] !== 1;
+    for (let r = 0; r < map.length; r++) for (let c = 0; c < map[r].length; c++) {
+      if (map[r][c] !== 1) continue;
+      const x = c * TILE_SIZE, y = r * TILE_SIZE, i = 3;
+      if (open(r - 1, c)) { ctx.moveTo(x, y + i); ctx.lineTo(x + TILE_SIZE, y + i); }
+      if (open(r + 1, c)) { ctx.moveTo(x, y + TILE_SIZE - i); ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE - i); }
+      if (open(r, c - 1)) { ctx.moveTo(x + i, y); ctx.lineTo(x + i, y + TILE_SIZE); }
+      if (open(r, c + 1)) { ctx.moveTo(x + TILE_SIZE - i, y); ctx.lineTo(x + TILE_SIZE - i, y + TILE_SIZE); }
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Punkte
+    for (let r = 0; r < map.length; r++) for (let c = 0; c < map[r].length; c++) {
+      if (map[r][c] === 0) {
+        ctx.fillStyle = 'rgba(246,242,249,0.75)';
+        ctx.beginPath(); ctx.arc(c * TILE_SIZE + 10, r * TILE_SIZE + 10, 2.2, 0, Math.PI * 2); ctx.fill();
+      } else if (map[r][c] === 3) {
+        ctx.save();
+        ctx.fillStyle = '#ffc857'; ctx.shadowColor = '#ffc857'; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(c * TILE_SIZE + 10, r * TILE_SIZE + 10, 5 + Math.sin(t / 180) * 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
       }
     }
 
     pacman.mouth += pacman.mouthSpeed;
     if (pacman.mouth > 0.35 || pacman.mouth < 0.05) pacman.mouthSpeed = -pacman.mouthSpeed;
+    const rot = pacman.dx === -1 ? Math.PI : pacman.dy === 1 ? 0.5 * Math.PI : pacman.dy === -1 ? 1.5 * Math.PI : 0;
 
-    let rot = pacman.dx === -1 ? Math.PI : pacman.dy === 1 ? 0.5 * Math.PI : pacman.dy === -1 ? 1.5 * Math.PI : 0;
-
-    ctx.fillStyle = '#ffff00';
+    ctx.save();
+    ctx.fillStyle = '#ffc857'; ctx.shadowColor = '#ffc857'; ctx.shadowBlur = 14;
     ctx.beginPath();
     ctx.arc(pacman.x + 10, pacman.y + 10, 8, rot + pacman.mouth, rot + Math.PI * 2 - pacman.mouth);
     ctx.lineTo(pacman.x + 10, pacman.y + 10);
     ctx.fill();
+    ctx.restore();
 
     ghosts.forEach(ghost => {
-      ctx.fillStyle = frightenedTimer > 0 ? (frightenedTimer < 60 && Math.floor(frightenedTimer / 10) % 2 === 0 ? '#fff' : '#0000ff') : ghost.color;
+      const scared = frightenedTimer > 0;
+      const blink = scared && frightenedTimer < 60 && Math.floor(frightenedTimer / 10) % 2 === 0;
+      const col = scared ? (blink ? '#f6f2f9' : '#6366f1') : ghost.color;
+      ctx.save();
+      ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.arc(ghost.x + 10, ghost.y + 8, 8, Math.PI, 0, false);
+      ctx.arc(ghost.x + 10, ghost.y + 9, 8, Math.PI, 0, false);
       ctx.lineTo(ghost.x + 18, ghost.y + 18);
-      ctx.lineTo(ghost.x + 2, ghost.y + 18);
+      for (let k = 0; k < 3; k++) {
+        const bx = ghost.x + 18 - (k + 1) * (16 / 3);
+        ctx.lineTo(bx + 16 / 6, ghost.y + 15 + ((Math.floor(t / 120) + k) % 2) * 2);
+        ctx.lineTo(bx, ghost.y + 18);
+      }
+      ctx.closePath();
       ctx.fill();
+      ctx.restore();
+      // Augen
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(ghost.x + 7, ghost.y + 9, 2.4, 0, Math.PI * 2); ctx.arc(ghost.x + 13, ghost.y + 9, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#120816';
+      ctx.beginPath(); ctx.arc(ghost.x + 7 + ghost.dx, ghost.y + 9 + ghost.dy, 1.2, 0, Math.PI * 2); ctx.arc(ghost.x + 13 + ghost.dx, ghost.y + 9 + ghost.dy, 1.2, 0, Math.PI * 2); ctx.fill();
     });
   }
 
@@ -350,9 +317,10 @@
   function endGame(won) {
     isRunning = false;
     cancelAnimationFrame(animationId);
-    document.getElementById('overlay-title').textContent = won ? 'GEWONNEN!' : 'GAME OVER';
+    document.getElementById('overlay-title').textContent = won ? 'Gewonnen!' : 'Spiel vorbei';
     document.getElementById('overlay-sub').textContent = `Endstand: ${score} Punkte`;
-    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('overlay').style.display = 'grid';
+    document.getElementById('start-btn').textContent = 'Nochmal spielen';
   }
 
   document.getElementById('start-btn').onclick = () => {
@@ -368,6 +336,8 @@
 
   const setDir = (dx, dy) => { pacman.nextDx = dx; pacman.nextDy = dy; };
   window.addEventListener('keydown', e => {
+    if (e.key.startsWith('Arrow')) e.preventDefault();
+    if (e.key === 'Enter' && !isRunning) document.getElementById('start-btn').click();
     if (['ArrowUp', 'w'].includes(e.key)) setDir(0, -1);
     if (['ArrowDown', 's'].includes(e.key)) setDir(0, 1);
     if (['ArrowLeft', 'a'].includes(e.key)) setDir(-1, 0);
@@ -386,6 +356,10 @@
     if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 30 ? 1 : dx < -30 ? -1 : pacman.nextDx, 0);
     else setDir(0, dy > 30 ? 1 : dy < -30 ? -1 : pacman.nextDy);
   }, {passive:true});
+
+  // Initiales Bild hinter dem Startdialog
+  map = JSON.parse(JSON.stringify(initialMap));
+  fitCanvas();
 </script>
 </body>
 </html>

@@ -3,38 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jump'n Run · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
     <link rel="stylesheet" href="/games/jumpnrun/style.css">
 </head>
 <body>
     <div id="menu-container">
-        <h1>LEVEL AUSWAHL</h1>
-        <div id="level-grid"></div>
-        
-        <div id="editor-link-container" style="margin-top: 20px;">
-            <a href="/games/jumpnrun/editor.html" class="ui-btn" style="text-decoration: none; background: #e74c3c; color: white; display: inline-block;">🛠 Level Editor</a>
+        <div class="menu-top">
+            <a href="/" class="gh-back hub-btn">← Bibliothek</a>
+            <a href="/games/jumpnrun/editor.html" class="gh-btn gh-btn-sm">Level-Editor</a>
         </div>
-
-        <hr style="width: 80%; margin: 30px 0;">
-        <a href="/" class="hub-btn">ZURÜCK ZUM HUB</a>
+        <span class="gh-label">Jump'n Run</span>
+        <h1>Level wählen</h1>
+        <p class="sub">Sammle Münzen, weiche Gegnern aus und erreiche die Flagge.</p>
+        <div id="level-grid"></div>
+        <p class="hint"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> laufen · <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Leertaste</kbd> springen</p>
     </div>
 
     <div id="game-screen" class="hidden">
         <div id="world-container">
             <div id="world"><div id="player"></div></div>
         </div>
-        
+
         <div id="ui">
-            <div class="ui-row">
-                <div id="lives-container"></div>
-                <div id="coin-info">🪙 <span id="coin-count">0</span></div>
-            </div>
-            <div class="ui-row">
-                <button class="ui-btn" onclick="exitToMenu()">Menü</button>
-                <span id="level-display">Level 1</span>
-            </div>
+            <button class="gh-btn gh-btn-sm" onclick="exitToMenu()">← Menü</button>
+            <span id="level-display">Level 1</span>
+            <div id="lives-container"></div>
+            <div id="coin-info"><span class="coin-icon"></span><span id="coin-count">0</span></div>
         </div>
 
         <div id="controls">
@@ -42,15 +39,15 @@
                 <button id="btn-left">◀</button>
                 <button id="btn-right">▶</button>
             </div>
-            <button id="btn-jump">jump</button>
+            <button id="btn-jump">▲</button>
         </div>
     </div>
 
     <div id="win-screen" class="hidden">
-        <div class="win-content">
-            <h1>GEWONNEN!</h1>
+        <div class="gh-overlay-card win-content">
+            <h2>Gewonnen!</h2>
             <p>Du hast alle Welten gerettet.</p>
-            <button class="ui-btn" onclick="location.reload()">zum Start</button>
+            <button class="gh-btn gh-btn-white" onclick="location.reload()">Zum Start</button>
         </div>
     </div>
 
