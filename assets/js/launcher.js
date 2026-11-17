@@ -276,12 +276,20 @@
   /* ==========================================================================
      Player – Spiel startet im Launcher (Vollbild)
      ========================================================================== */
-  const player = { id: null, started: 0, timer: null, enteredFs: false };
+  const player = { id: null, started: 0, timer: null, enteredFs: false, histLen: 0 };
 
-  function launch(id) {
+  // history: true = neue URL /games/<id> anlegen, false = URL nicht anfassen (z. B. bei Zurück/Vor)
+  function launch(id, history) {
     const g = BY_ID[id];
     if (!g) return;
-    if (player.id) closePlayer();
+    const switching = !!player.id;
+    if (switching) closePlayer(false);
+    if (history !== false) {
+      const st = { gh: "game", id: id };
+      if (switching) window.history.replaceState(st, "", g.url);
+      else window.history.pushState(st, "", g.url);
+    }
+    player.histLen = window.history.length;
     Store.recordPlay(id);
     player.id = id;
     player.started = Date.now();
@@ -292,8 +300,8 @@
 
     $("playerName").innerHTML = gameIcon(g) + esc(g.name);
     $("playerLoading").classList.remove("hidden");
-    const frame = $("playerFrame");
-    frame.src = g.path;
+    // replace() statt src: erzeugt keinen zusätzlichen Verlaufseintrag
+    $("playerFrame").contentWindow.location.replace(g.path);
     const el = $("player");
     el.classList.add("open");
     el.setAttribute("aria-hidden", "false");
@@ -307,13 +315,19 @@
     player.timer = setInterval(tick, 1000);
   }
 
-  function closePlayer() {
+  function closePlayer(history) {
     if (!player.id) return;
+    if (history !== false) {
+      // Spiel-URL verlassen: per Zurück, wenn wir sie selbst angelegt haben
+      // Auch Navigationen innerhalb des Spiels (z. B. Editor) mit überspringen
+      if (window.history.state && window.history.state.gh === "game") window.history.go(-Math.max(1, window.history.length - player.histLen + 1));
+      else window.history.replaceState(null, "", "/");
+    }
     Store.addTime(player.id, Date.now() - player.started);
     clearInterval(player.timer);
     const id = player.id;
     player.id = null;
-    $("playerFrame").src = "about:blank";
+    $("playerFrame").contentWindow.location.replace("about:blank");
     const el = $("player");
     el.classList.remove("open");
     el.setAttribute("aria-hidden", "true");
@@ -329,6 +343,7 @@
     const frame = $("playerFrame");
     let path = null;
     try { path = frame.contentWindow.location.pathname; } catch (e) { /* fremde Herkunft */ }
+    if (path === "blank") return; // leerer Platzhalter, Spiel lädt noch
     if (!player.id) return;
     if (path === "/" || path === "/index.html" || path === "/index") { closePlayer(); return; }
     $("playerLoading").classList.add("hidden");
@@ -478,6 +493,14 @@
     });
 
     window.addEventListener("hashchange", () => { readHash(); render(); });
+
+    // Browser-Zurück/Vor zwischen Bibliothek und /games/<id>
+    window.addEventListener("popstate", () => {
+      const id = gameIdFromPath();
+      if (id) { if (player.id !== id) launch(id, false); }
+      else if (player.id) closePlayer(false);
+      else { readHash(); render(); }
+    });
     document.addEventListener("fullscreenchange", updateFsButtons);
     window.addEventListener("beforeunload", () => { if (player.id) Store.addTime(player.id, Date.now() - player.started); });
 
@@ -487,6 +510,15 @@
     setInterval(tick, 1000);
 
     render();
+
+    // Direktaufruf mit Spiel-Adresse (falls der Server /games/<id> auf den Launcher leitet)
+    const deep = gameIdFromPath();
+    if (deep) { select(deep, false); launch(deep, false); }
+  }
+
+  function gameIdFromPath() {
+    const m = location.pathname.match(/^\/games\/([^/]+)\/?$/);
+    return m && BY_ID[m[1]] ? m[1] : null;
   }
 
   init();

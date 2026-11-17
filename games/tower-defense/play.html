@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/device-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <link rel="stylesheet" href="/games/tower-defense/style.css">
+</head>
+<body>
+
+    <div id="game-ui">
+        <div class="left">
+            <a href="/" class="gh-back exit-btn">← Bibliothek</a>
+            <div class="stats">
+                <div class="stat"><span class="gh-label">Gold</span><span class="v gold" id="money">200</span></div>
+                <div class="stat"><span class="gh-label">Leben</span><span class="v" id="lives">20</span></div>
+                <div class="stat"><span class="gh-label">Welle</span><span class="v" id="wave">1</span></div>
+            </div>
+        </div>
+        <div class="shop">
+            <button class="tower-btn" id="btn-basic" onclick="selectTower('basic')">
+                <span class="dot basic"></span><span><b>Turm</b><small>50 Gold · schnell</small></span><kbd>1</kbd>
+            </button>
+            <button class="tower-btn" id="btn-sniper" onclick="selectTower('sniper')">
+                <span class="dot sniper"></span><span><b>Sniper</b><small>100 Gold · weit</small></span><kbd>2</kbd>
+            </button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="game-over-screen" class="gh-overlay hidden">
+        <div class="gh-overlay-card">
+            <h2>Basis überrannt</h2>
+            <p class="final-stats">Wellen überlebt: <b id="final-wave">0</b> · Rekord: <b id="high-score">0</b></p>
+            <button class="gh-btn gh-btn-white retry-btn" onclick="restartGame()">Revanche</button>
+            <a href="/" class="gh-btn exit-link">Bibliothek</a>
+        </div>
+    </div>
+
+    <script src="/games/tower-defense/game.js"></script>
+</body>
+</html>

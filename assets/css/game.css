@@ -93,6 +93,8 @@ body {
   letter-spacing: 0 !important;
   transition: color .15s, border-color .15s;
 }
+/* Im Player gibt es bereits eine "Bibliothek"-Schaltfläche */
+.gh-embedded .gh-back:not(.gh-keep) { display: none !important; }
 .gh-back:hover { color: var(--gh-text) !important; border-color: #4a454e; }
 
 /* ---------- Karten / Panels ---------- */

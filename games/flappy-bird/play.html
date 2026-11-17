@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/device-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <link rel="stylesheet" href="/games/flappy-bird/style.css">
+</head>
+<body>
+
+    <div class="game-container">
+        <aside class="side">
+            <a href="/" class="gh-back back-link">← Bibliothek</a>
+            <div>
+                <span class="gh-label">Punkte</span>
+                <div id="currentScore" class="score">0</div>
+            </div>
+            <div>
+                <span class="gh-label">Bestwert</span>
+                <div id="bestScore" class="gh-value">0</div>
+            </div>
+            <p class="hint"><kbd>Leertaste</kbd> oder Klick zum Fliegen</p>
+        </aside>
+
+        <div class="canvas-wrapper">
+            <canvas id="birdCanvas"></canvas>
+
+            <div id="restartMenu" class="gh-overlay">
+                <div class="gh-overlay-card">
+                    <h2>Spiel vorbei</h2>
+                    <p id="finalScore">0 Punkte</p>
+                    <button id="btnRestart" class="gh-btn gh-btn-white">Nochmal spielen</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="btnJump" class="gh-btn">Flügelschlag</button>
+        </div>
+    </div>
+
+    <script src="/games/flappy-bird/game.js"></script>
+</body>
+</html>

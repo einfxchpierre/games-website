@@ -3,6 +3,9 @@
    Muss als erstes Script im <head> eingebunden werden.
    ========================================================================== */
 (function () {
+  // Im GAMEHUB-Player eingebettet? → Spiel blendet eigene "Bibliothek"-Links aus
+  try { if (window.self !== window.top) document.documentElement.classList.add("gh-embedded"); } catch (e) { document.documentElement.classList.add("gh-embedded"); }
+
   var ua = navigator.userAgent || "";
   var mobileUA = /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle|BlackBerry|Opera Mini|IEMobile/i.test(ua);
   // iPadOS meldet sich als "Macintosh" – an Touchpunkten erkennbar

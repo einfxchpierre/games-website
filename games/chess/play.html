@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/device-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schach · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; user-select: none; }
+        #canvas-container { position: fixed; inset: 0; }
+        #canvas-container canvas { display: block; outline: none; }
+
+        .panel {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            width: 300px;
+            padding: 18px;
+            border: 1px solid var(--gh-line-strong);
+            border-radius: 18px;
+            background: rgba(14, 7, 20, 0.72);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.7);
+        }
+        .panel h1 { margin: 16px 0 12px; font-size: 30px; letter-spacing: -0.04em; }
+        .status { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+        .status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gh-pos); box-shadow: 0 0 10px currentColor; color: var(--gh-pos); }
+        .status.ai .dot { background: var(--gh-accent); color: var(--gh-accent); animation: pulse 1s infinite alternate; }
+        .status.check .dot { background: var(--gh-neg); color: var(--gh-neg); }
+        @keyframes pulse { to { opacity: .35; } }
+
+        .rows { margin: 16px 0; border-top: 1px solid var(--gh-line); }
+        .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gh-line); font-size: 13.5px; }
+        .row span:first-child { color: var(--gh-text-2); }
+        .row span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        .captured { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; font-size: 18px; line-height: 1.2; min-height: 48px; }
+        .captured .lbl { font-size: 11.5px; color: var(--gh-text-3); margin-right: 6px; }
+        .captured .w { color: #efe8df; }
+        .captured .b { color: #b9afc4; }
+
+        .moves {
+            max-height: 150px; overflow-y: auto;
+            display: grid; grid-template-columns: 28px 1fr 1fr; gap: 2px 8px;
+            margin-bottom: 16px;
+            font-size: 13px; font-variant-numeric: tabular-nums;
+        }
+        .moves .n { color: var(--gh-text-3); }
+        .moves .last { color: var(--gh-accent); font-weight: 700; }
+        .moves:empty::before { content: "Noch keine Züge"; grid-column: 1 / -1; color: var(--gh-text-3); }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .actions .gh-btn { width: 100%; height: 36px; font-size: 13px; padding: 0 10px; }
+        .actions .full { grid-column: 1 / -1; }
+
+        .hint {
+            position: absolute; bottom: 18px; right: 20px; z-index: 10;
+            padding: 8px 16px;
+            border: 1px solid var(--gh-line-strong); border-radius: 999px;
+            background: rgba(14, 7, 20, 0.6); backdrop-filter: blur(10px);
+            color: var(--gh-text-2); font-size: 12.5px; white-space: nowrap;
+        }
+
+        .loading { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: var(--gh-bg); transition: opacity .5s; }
+        .spinner { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid var(--gh-chip); border-top-color: var(--gh-accent); animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #endOverlay { position: fixed; display: none; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+</head>
+<body>
+
+    <div class="panel">
+        <a href="/" class="gh-back">← Bibliothek</a>
+        <h1>Schach</h1>
+        <div class="status" id="status"><span class="dot"></span><span id="status-msg">Dein Zug (Weiß)</span></div>
+        <div class="rows">
+            <div class="row"><span>Du spielst</span><span>Weiß</span></div>
+            <div class="row"><span>KI-Stufe</span><span id="ki-depth">–</span></div>
+            <div class="row"><span>Zug</span><span id="move-no">1</span></div>
+        </div>
+        <div class="captured" id="captured"></div>
+        <div class="moves" id="moves"></div>
+        <div class="actions">
+            <button class="gh-btn" id="btn-undo">Zug zurück</button>
+            <button class="gh-btn" id="btn-view">Ansicht</button>
+            <button class="gh-btn gh-btn-white full" id="btn-new">Neues Spiel</button>
+        </div>
+    </div>
+
+    <div class="hint">Klick: Figur wählen &amp; ziehen · Rechte Maus/Ziehen: Kamera drehen · Mausrad: Zoom</div>
+
+    <div id="endOverlay" class="gh-overlay">
+        <div class="gh-overlay-card">
+            <h2 id="endTitle">Schachmatt</h2>
+            <p id="endText"></p>
+            <button class="gh-btn" onclick="document.getElementById('endOverlay').style.display='none'">Brett ansehen</button>
+            <button class="gh-btn gh-btn-white" onclick="newGame()">Neues Spiel</button>
+        </div>
+    </div>
+
+    <div id="loading" class="loading"><div><div class="spinner"></div><span class="gh-label">Spielfeld wird aufgebaut …</span></div></div>
+    <div id="canvas-container"></div>
+
+    <script>
+    /* ==========================================================================
+       GAMEHUB · 3D-Schach
+       Rendering: PBR-Materialien, Umgebungsreflexionen, ACES-Tone-Mapping,
+       weiche Schatten, gedrechselte Figuren (LatheGeometry)
+       ========================================================================== */
+    const game = new Chess();
+    const container = document.getElementById('canvas-container');
+    const statusEl = document.getElementById('status');
+    const statusMsg = document.getElementById('status-msg');
+    const depthEl = document.getElementById('ki-depth');
+
+    let scene, camera, renderer, controls;
+    const boardGroup = new THREE.Group();
+    const piecesGroup = new THREE.Group();
+    const markersGroup = new THREE.Group();
+    const squares = {};
+    let currentPieces = {};
+
+    const TILE = 2;
+    const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    let selectedSquare = null;
+    let validMoves = [];
+    let isAnimating = false;
+    let aiThinking = false;
+
+    const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+    const C = {
+        accent: 0xe254d6, neg: 0xff5470,
+        tileLight: 0x5e4b6d, tileDark: 0x281a31,
+        frame: 0x120a18,
+        white: 0xf1ebe3, black: 0x1c1024
+    };
+
+    /* ---------- Initialisierung ---------- */
+    function init3D() {
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.1, 200);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+        renderer.physicallyCorrectLights = true;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        scene.environment = buildEnvironment();
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enablePan = false;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 13;
+        controls.maxDistance = 40;
+        controls.maxPolarAngle = 1.22;
+        resetView(false);
+        applyViewOffset();
+
+        /* Licht */
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x3a0d41, 0.6));
+
+        const key = new THREE.DirectionalLight(0xfff1e6, 3.2);
+        key.position.set(9, 20, 11);
+        key.castShadow = true;
+        key.shadow.mapSize.set(2048, 2048);
+        Object.assign(key.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 60 });
+        key.shadow.bias = -0.0004;
+        key.shadow.normalBias = 0.02;
+        key.shadow.radius = 4;
+        scene.add(key);
+
+        const rim = new THREE.DirectionalLight(C.accent, 2.6);
+        rim.position.set(-12, 9, -14);
+        scene.add(rim);
+
+        const fill = new THREE.DirectionalLight(0x9cc3ff, 0.7);
+        fill.position.set(-14, 7, 12);
+        scene.add(fill);
+
+        scene.add(boardGroup, piecesGroup, markersGroup);
+        createBoard();
+        initPieces3D();
+
+        addEventListener('resize', onWindowResize);
+        setupPointer();
+
+        document.getElementById('btn-new').onclick = newGame;
+        document.getElementById('btn-undo').onclick = undoMove;
+        document.getElementById('btn-view').onclick = () => resetView(true);
+
+        updatePanel();
+        const loading = document.getElementById('loading');
+        loading.style.opacity = 0;
+        setTimeout(() => loading.remove(), 500);
+        animate();
+    }
+
+    /* Umgebungs-Map für Reflexionen (kleines "Studio" mit Leuchtflächen) */
+    function buildEnvironment() {
+        const env = new THREE.Scene();
+        const room = new THREE.Mesh(new THREE.BoxGeometry(30, 16, 30), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.03, 0.015, 0.04), side: THREE.BackSide }));
+        room.position.y = 6;
+        env.add(room);
+        const panel = (w, h, color, pos, rot) => {
+            const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+            m.position.set(...pos);
+            if (rot) m.rotation.set(...rot);
+            env.add(m);
+        };
+        panel(14, 6, new THREE.Color(6, 5.6, 5.2), [0, 13.5, 0], [Math.PI / 2, 0, 0]);   // Softbox oben
+        panel(6, 8, new THREE.Color(3.5, 0.9, 3.2), [-14.5, 6, -4], [0, Math.PI / 2, 0]); // Magenta links
+        panel(6, 8, new THREE.Color(1.2, 1.8, 3.2), [14.5, 6, 4], [0, -Math.PI / 2, 0]);  // Kühl rechts
+        panel(10, 3, new THREE.Color(2.5, 2.3, 2.2), [0, 5, -14.5], [0, 0, 0]);
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        const rt = pmrem.fromScene(env, 0.04);
+        pmrem.dispose();
+        return rt.texture;
+    }
+
+    function resetView(animated) {
+        const target = { x: 0, y: 23, z: 15.5 };
+        if (animated) {
+            new TWEEN.Tween(camera.position).to(target, 700).easing(TWEEN.Easing.Cubic.InOut).start();
+        } else {
+            camera.position.set(target.x, target.y, target.z);
+        }
+        controls.target.set(0, -0.6, 0.9);
+    }
+
+    /* ---------- Brett ---------- */
+    function labelTexture(text) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 128;
+        const g = c.getContext('2d');
+        g.fillStyle = '#b9afc4';
+        g.font = '600 64px Inter, system-ui, sans-serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillText(text, 64, 68);
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        return tex;
+    }
+
+    function createBoard() {
+        const tileGeo = new THREE.BoxGeometry(TILE, 0.3, TILE);
+        for (let rank = 0; rank < 8; rank++) {
+            for (let file = 0; file < 8; file++) {
+                const isLight = (rank + file) % 2 !== 0;
+                const mat = new THREE.MeshPhysicalMaterial({
+                    color: lin(isLight ? C.tileLight : C.tileDark),
+                    roughness: isLight ? 0.42 : 0.38,
+                    metalness: 0,
+                    clearcoat: 0.5,
+                    clearcoatRoughness: 0.25,
+                    envMapIntensity: 0.45
+                });
+                const sq = new THREE.Mesh(tileGeo, mat);
+                sq.position.set((file - 3.5) * TILE, -0.15, (3.5 - rank) * TILE);
+                sq.receiveShadow = true;
+                const name = FILES[file] + (rank + 1);
+                sq.userData = { name };
+                boardGroup.add(sq);
+                squares[name] = sq;
+            }
+        }
+
+        // Rahmen
+        const frameMat = new THREE.MeshPhysicalMaterial({ color: lin(C.frame), roughness: 0.55, metalness: 0.1, clearcoat: 0.35, clearcoatRoughness: 0.4, envMapIntensity: 0.35 });
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(19, 0.7, 19), frameMat);
+        frame.position.y = -0.37;
+        frame.receiveShadow = true;
+        frame.castShadow = true;
+        boardGroup.add(frame);
+
+        // Leuchtende Innenkante
+        const glowMat = new THREE.MeshBasicMaterial({ color: lin(C.accent), toneMapped: false });
+        const t = 0.05, len = 16 + t * 2;
+        [[0, -8 - t / 2, len, t], [0, 8 + t / 2, len, t], [-8 - t / 2, 0, t, len], [8 + t / 2, 0, t, len]].forEach(([x, z, w, d]) => {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), glowMat);
+            m.position.set(x, 0.0, z);
+            boardGroup.add(m);
+        });
+
+        // Koordinaten
+        const labelGeo = new THREE.PlaneGeometry(0.75, 0.75);
+        const addLabel = (text, x, z) => {
+            const m = new THREE.Mesh(labelGeo, new THREE.MeshBasicMaterial({ map: labelTexture(text), transparent: true, depthWrite: false }));
+            m.rotation.x = -Math.PI / 2;
+            m.position.set(x, 0.0, z);
+            boardGroup.add(m);
+        };
+        for (let i = 0; i < 8; i++) {
+            addLabel(FILES[i], (i - 3.5) * TILE, 8.75);
+            addLabel(String(i + 1), -8.75, (3.5 - i) * TILE);
+        }
+
+        // Schattenfänger unter dem Brett
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.35 }));
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.72;
+        ground.receiveShadow = true;
+        scene.add(ground);
+    }
+
+    /* ---------- Figuren (gedrechselt) ---------- */
+    const V = (x, y) => new THREE.Vector2(x, y);
+    const BASE = [V(0, 0), V(0.78, 0), V(0.8, 0.06), V(0.78, 0.13), V(0.66, 0.2), V(0.68, 0.27), V(0.6, 0.32), V(0.5, 0.36)];
+    const PROFILES = {
+        p: [...BASE, V(0.36, 0.48), V(0.27, 0.9), V(0.42, 0.98), V(0.42, 1.04), V(0.22, 1.08), V(0, 1.08)],
+        r: [...BASE, V(0.5, 0.48), V(0.42, 1.3), V(0.58, 1.38), V(0.58, 1.86), V(0.44, 1.86), V(0.44, 1.7), V(0, 1.7)],
+        b: [...BASE, V(0.4, 0.48), V(0.25, 1.32), V(0.44, 1.4), V(0.44, 1.46), V(0.24, 1.5), V(0.33, 1.62), V(0.37, 1.8), V(0.3, 2.0), V(0.14, 2.14), V(0, 2.18)],
+        q: [...BASE, V(0.48, 0.48), V(0.28, 1.62), V(0.5, 1.72), V(0.5, 1.78), V(0.3, 1.84), V(0.4, 2.14), V(0.5, 2.26), V(0.36, 2.3), V(0, 2.3)],
+        k: [...BASE, V(0.5, 0.48), V(0.3, 1.72), V(0.52, 1.82), V(0.52, 1.88), V(0.32, 1.94), V(0.44, 2.3), V(0.38, 2.36), V(0, 2.36)],
+        n: [...BASE, V(0.5, 0.48), V(0.46, 0.62), V(0, 0.62)]
+    };
+    const geoCache = {};
+    function latheGeo(type) {
+        if (!geoCache[type]) geoCache[type] = new THREE.LatheGeometry(PROFILES[type], 64);
+        return geoCache[type];
+    }
+
+    function knightHeadGeo() {
+        if (geoCache.nHead) return geoCache.nHead;
+        const s = new THREE.Shape();
+        const pts = [[-0.44, 0.55], [0.4, 0.55], [0.34, 0.86], [0.16, 1.06], [0.5, 1.22], [0.66, 1.42], [0.58, 1.6], [0.26, 1.68], [0.12, 1.92], [-0.04, 1.84], [-0.3, 1.66], [-0.46, 1.34], [-0.52, 0.94]];
+        s.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) s.lineTo(pts[i][0], pts[i][1]);
+        s.closePath();
+        const g = new THREE.ExtrudeGeometry(s, { depth: 0.36, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.07, bevelSegments: 4, curveSegments: 12 });
+        g.translate(0, 0, -0.18);
+        g.computeVertexNormals();
+        return (geoCache.nHead = g);
+    }
+
+    function pieceMaterial(isWhite) {
+        return isWhite
+            ? new THREE.MeshPhysicalMaterial({ color: lin(C.white), roughness: 0.3, metalness: 0, clearcoat: 0.7, clearcoatRoughness: 0.2, envMapIntensity: 1.0, emissive: lin(C.accent), emissiveIntensity: 0 })
+            : new THREE.MeshPhysicalMaterial({ color: lin(C.black), roughness: 0.2, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.3, emissive: lin(C.accent), emissiveIntensity: 0 });
+    }
+
+    function createPieceMesh(type, isWhite) {
+        const mat = pieceMaterial(isWhite);
+        const group = new THREE.Group();
+        const add = (geo, setup) => {
+            const m = new THREE.Mesh(geo, mat);
+            m.castShadow = true;
+            m.receiveShadow = true;
+            if (setup) setup(m);
+            group.add(m);
+            return m;
+        };
+        add(latheGeo(type));
+
+        if (type === 'p') add(new THREE.SphereGeometry(0.34, 48, 32), (m) => (m.position.y = 1.36));
+        if (type === 'r') {
+            for (let i = 0; i < 6; i++) {
+                const a = (i / 6) * Math.PI * 2;
+                add(new THREE.BoxGeometry(0.2, 0.22, 0.16), (m) => { m.position.set(Math.cos(a) * 0.48, 1.97, Math.sin(a) * 0.48); m.rotation.y = -a; });
+            }
+        }
+        if (type === 'b') {
+            add(new THREE.SphereGeometry(0.09, 24, 16), (m) => (m.position.y = 2.26));
+            add(new THREE.BoxGeometry(0.05, 0.3, 0.5), (m) => { m.position.set(0.12, 1.86, 0); m.rotation.z = 0.5; });
+        }
+        if (type === 'q') {
+            for (let i = 0; i < 9; i++) {
+                const a = (i / 9) * Math.PI * 2;
+                add(new THREE.SphereGeometry(0.075, 16, 12), (m) => m.position.set(Math.cos(a) * 0.44, 2.33, Math.sin(a) * 0.44));
+            }
+            add(new THREE.SphereGeometry(0.15, 32, 24), (m) => (m.position.y = 2.42));
+        }
+        if (type === 'k') {
+            add(new THREE.BoxGeometry(0.16, 0.62, 0.16), (m) => (m.position.y = 2.66));
+            add(new THREE.BoxGeometry(0.46, 0.16, 0.16), (m) => (m.position.y = 2.72));
+        }
+        if (type === 'n') {
+            const head = add(knightHeadGeo(), (m) => (m.rotation.y = Math.PI / 2));
+            const eyeMat = new THREE.MeshStandardMaterial({ color: lin(isWhite ? 0x2a1a33 : 0xe254d6), roughness: 0.3, emissive: lin(isWhite ? 0x000000 : 0xe254d6), emissiveIntensity: isWhite ? 0 : 0.6 });
+            [-1, 1].forEach((side) => {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), eyeMat);
+                eye.position.set(side * 0.27, 1.5, -0.2);
+                group.add(eye);
+            });
+        }
+
+        group.userData = { type, isWhite, mat };
+        return group;
+    }
+
+    function placePiece(sqName, piece) {
+        const isWhite = piece.color === 'w';
+        const mesh = createPieceMesh(piece.type, isWhite);
+        if (!isWhite) mesh.rotation.y = Math.PI;
+        // Springer seitlich ausrichten, damit das Profil sichtbar ist
+        if (piece.type === 'n') mesh.rotation.y += (FILES.indexOf(sqName[0]) < 4 ? -1 : 1) * Math.PI / 2 * (isWhite ? 1 : -1);
+        const s = squares[sqName];
+        mesh.position.set(s.position.x, 0, s.position.z);
+        piecesGroup.add(mesh);
+        currentPieces[sqName] = mesh;
+        return mesh;
+    }
+
+    function initPieces3D() {
+        while (piecesGroup.children.length) piecesGroup.remove(piecesGroup.children[0]);
+        currentPieces = {};
+        const board = game.board();
+        for (let r = 0; r < 8; r++) {
+            for (let f = 0; f < 8; f++) {
+                const piece = board[r][f];
+                if (piece) placePiece(FILES[f] + (8 - r), piece);
+            }
+        }
+    }
+
+    /* ---------- Marker (Auswahl, Züge, letzter Zug, Schach) ---------- */
+    const markerMat = (color, opacity) => new THREE.MeshBasicMaterial({ color: lin(color), transparent: true, opacity, depthWrite: false, toneMapped: false });
+    const MARK = {
+        select: markerMat(C.accent, 0.42),
+        last: markerMat(C.accent, 0.16),
+        check: markerMat(C.neg, 0.55),
+        hover: markerMat(0xffffff, 0.08),
+        dot: markerMat(C.accent, 0.95),
+        ring: markerMat(C.accent, 0.95)
+    };
+    const planeGeo = new THREE.PlaneGeometry(TILE, TILE);
+    const dotGeo = new THREE.CircleGeometry(0.24, 40);
+    const ringGeo = new THREE.RingGeometry(0.74, 0.9, 56);
+    let hoverMarker = null;
+
+    function addMarker(sq, kind, y) {
+        const s = squares[sq];
+        if (!s) return;
+        const geo = kind === 'dot' ? dotGeo : kind === 'ring' ? ringGeo : planeGeo;
+        const m = new THREE.Mesh(geo, MARK[kind]);
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(s.position.x, y || 0.006, s.position.z);
+        m.renderOrder = 2;
+        markersGroup.add(m);
+        return m;
+    }
+
+    function refreshMarkers() {
+        while (markersGroup.children.length) markersGroup.remove(markersGroup.children[0]);
+        hoverMarker = null;
+        const hist = game.history({ verbose: true });
+        const last = hist[hist.length - 1];
+        if (last) { addMarker(last.from, 'last', 0.004); addMarker(last.to, 'last', 0.004); }
+        if (game.in_check()) addMarker(kingSquare(game.turn()), 'check', 0.005);
+        if (selectedSquare) {
+            addMarker(selectedSquare, 'select', 0.006);
+            validMoves.forEach((m) => addMarker(m.to, m.captured ? 'ring' : 'dot', 0.01));
+        }
+    }
+
+    function kingSquare(color) {
+        const b = game.board();
+        for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+            const p = b[r][f];
+            if (p && p.type === 'k' && p.color === color) return FILES[f] + (8 - r);
+        }
+    }
+
+    function setLift(sq, up) {
+        const mesh = currentPieces[sq];
+        if (!mesh) return;
+        new TWEEN.Tween(mesh.position).to({ y: up ? 0.35 : 0 }, 180).easing(TWEEN.Easing.Quadratic.Out).start();
+        mesh.userData.mat.emissiveIntensity = up ? 0.18 : 0;
+    }
+
+    /* ---------- Animationen ---------- */
+    function animateMove3D(move, callback) {
+        if (!move) return;
+        isAnimating = true;
+        const movingMesh = currentPieces[move.from];
+        if (!movingMesh) { initPieces3D(); isAnimating = false; refreshMarkers(); if (callback) callback(); return; }
+        movingMesh.userData.mat.emissiveIntensity = 0;
+
+        const target = squares[move.to].position;
+        const capturedSq = move.flags.includes('e') ? move.to[0] + move.from[1] : move.to;
+        const capturedMesh = currentPieces[capturedSq];
+        if (capturedMesh && capturedMesh !== movingMesh) {
+            delete currentPieces[capturedSq];
+            new TWEEN.Tween(capturedMesh.position).to({ y: -0.6 }, 380).delay(220).easing(TWEEN.Easing.Quadratic.In).start();
+            new TWEEN.Tween(capturedMesh.scale).to({ x: 0.01, y: 0.01, z: 0.01 }, 380).delay(220).easing(TWEEN.Easing.Quadratic.In)
+                .onComplete(() => piecesGroup.remove(capturedMesh)).start();
+        }
+
+        currentPieces[move.to] = movingMesh;
+        delete currentPieces[move.from];
+
+        if (move.flags.includes('k')) animateRook(move.color === 'w' ? 'h1' : 'h8', move.color === 'w' ? 'f1' : 'f8');
+        else if (move.flags.includes('q')) animateRook(move.color === 'w' ? 'a1' : 'a8', move.color === 'w' ? 'd1' : 'd8');
+
+        const dist = Math.hypot(target.x - movingMesh.position.x, target.z - movingMesh.position.z);
+        const dur = 380 + dist * 22;
+        new TWEEN.Tween(movingMesh.position).to({ x: target.x, z: target.z }, dur).easing(TWEEN.Easing.Cubic.InOut)
+            .onComplete(() => {
+                if (move.flags.includes('p')) {
+                    piecesGroup.remove(movingMesh);
+                    const promoted = placePiece(move.to, { type: move.promotion || 'q', color: move.color });
+                    promoted.scale.set(0.01, 0.01, 0.01);
+                    new TWEEN.Tween(promoted.scale).to({ x: 1, y: 1, z: 1 }, 320).easing(TWEEN.Easing.Back.Out).start();
+                }
+                isAnimating = false;
+                refreshMarkers();
+                if (callback) callback();
+            }).start();
+
+        const startY = movingMesh.position.y;
+        new TWEEN.Tween(movingMesh.position).to({ y: Math.max(startY, 1.2) }, dur / 2).easing(TWEEN.Easing.Quadratic.Out)
+            .chain(new TWEEN.Tween(movingMesh.position).to({ y: 0 }, dur / 2).easing(TWEEN.Easing.Quadratic.In))
+            .start();
+    }
+
+    function animateRook(from, to) {
+        const rook = currentPieces[from];
+        if (!rook) return;
+        const t = squares[to].position;
+        currentPieces[to] = rook;
+        delete currentPieces[from];
+        new TWEEN.Tween(rook.position).to({ x: t.x, z: t.z }, 520).easing(TWEEN.Easing.Cubic.InOut).start();
+        new TWEEN.Tween(rook.position).to({ y: 0.9 }, 260).easing(TWEEN.Easing.Quadratic.Out)
+            .chain(new TWEEN.Tween(rook.position).to({ y: 0 }, 260).easing(TWEEN.Easing.Quadratic.In)).start();
+    }
+
+    /* ---------- Eingabe (Klick ohne Kamera-Drag) ---------- */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let downPos = null, hoverQueued = false, lastHover = null;
+
+    function squareFromEvent(e) {
+        mouse.x = (e.clientX / innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects([...piecesGroup.children, ...Object.values(squares)], true);
+        for (const h of hits) {
+            if (h.object.userData.name) return h.object.userData.name;
+            let o = h.object;
+            while (o && o.parent !== piecesGroup) o = o.parent;
+            if (o) for (const sq in currentPieces) if (currentPieces[sq] === o) return sq;
+        }
+        return null;
+    }
+
+    function playerCanAct() { return !isAnimating && !aiThinking && game.turn() === 'w' && !game.game_over(); }
+
+    function setupPointer() {
+        const el = renderer.domElement;
+        el.addEventListener('pointerdown', (e) => { if (e.button === 0) downPos = { x: e.clientX, y: e.clientY }; });
+        el.addEventListener('pointerup', (e) => {
+            if (!downPos || e.button !== 0) return;
+            const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+            downPos = null;
+            if (moved > 6 || !playerCanAct()) return;
+            const sq = squareFromEvent(e);
+            if (sq) handleSquareClick(sq);
+        });
+        el.addEventListener('pointermove', (e) => {
+            if (hoverQueued) return;
+            hoverQueued = true;
+            requestAnimationFrame(() => {
+                hoverQueued = false;
+                const sq = playerCanAct() ? squareFromEvent(e) : null;
+                if (sq === lastHover) return;
+                lastHover = sq;
+                if (hoverMarker) { markersGroup.remove(hoverMarker); hoverMarker = null; }
+                const piece = sq && game.get(sq);
+                const actionable = sq && ((piece && piece.color === 'w') || validMoves.some((m) => m.to === sq));
+                el.style.cursor = actionable ? 'pointer' : '';
+                if (actionable) hoverMarker = addMarker(sq, 'hover', 0.003);
+            });
+        });
+    }
+
+    function handleSquareClick(sq) {
+        const piece = game.get(sq);
+        const move = validMoves.find((m) => m.to === sq);
+
+        if (selectedSquare && move) {
+            setLift(selectedSquare, false);
+            const res = game.move({ from: move.from, to: move.to, promotion: 'q' });
+            selectedSquare = null;
+            validMoves = [];
+            refreshMarkers();
+            updatePanel();
+            animateMove3D(res, () => {
+                updatePanel();
+                if (!game.game_over()) {
+                    aiThinking = true;
+                    updatePanel();
+                    setTimeout(makeAIMove, 60);
+                } else showEnd();
+            });
+            return;
+        }
+
+        if (selectedSquare) setLift(selectedSquare, false);
+        if (piece && piece.color === 'w' && sq !== selectedSquare) {
+            selectedSquare = sq;
+            validMoves = game.moves({ square: sq, verbose: true });
+            setLift(sq, true);
+        } else {
+            selectedSquare = null;
+            validMoves = [];
+        }
+        refreshMarkers();
+    }
+
+    /* ---------- Panel ---------- */
+    const GLYPH = { w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕' }, b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛' } };
+    function updatePanel() {
+        const hist = game.history();
+        document.getElementById('move-no').textContent = Math.floor(hist.length / 2) + 1;
+
+        statusEl.className = 'status';
+        if (game.in_checkmate()) statusMsg.textContent = game.turn() === 'w' ? 'Schachmatt – KI gewinnt' : 'Schachmatt – du gewinnst!';
+        else if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) statusMsg.textContent = 'Unentschieden';
+        else if (aiThinking) { statusEl.classList.add('ai'); statusMsg.textContent = 'KI denkt nach …'; }
+        else if (game.in_check()) { statusEl.classList.add('check'); statusMsg.textContent = game.turn() === 'w' ? 'Du stehst im Schach!' : 'KI steht im Schach'; }
+        else statusMsg.textContent = game.turn() === 'w' ? 'Dein Zug (Weiß)' : 'KI ist am Zug';
+
+        // Zugliste
+        let html = '';
+        for (let i = 0; i < hist.length; i += 2) {
+            const isLastW = i === hist.length - 1, isLastB = i + 1 === hist.length - 1;
+            html += '<span class="n">' + (i / 2 + 1) + '.</span><span class="' + (isLastW ? 'last' : '') + '">' + hist[i] + '</span><span class="' + (isLastB ? 'last' : '') + '">' + (hist[i + 1] || '') + '</span>';
+        }
+        const movesEl = document.getElementById('moves');
+        movesEl.innerHTML = html;
+        movesEl.scrollTop = movesEl.scrollHeight;
+
+        // Geschlagene Figuren
+        const start = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+        const count = { w: { p: 0, n: 0, b: 0, r: 0, q: 0 }, b: { p: 0, n: 0, b: 0, r: 0, q: 0 } };
+        game.board().flat().forEach((p) => { if (p && p.type !== 'k') count[p.color][p.type]++; });
+        const lost = (c) => ['q', 'r', 'b', 'n', 'p'].map((t) => GLYPH[c][t].repeat(Math.max(0, start[t] - count[c][t]))).join('');
+        document.getElementById('captured').innerHTML =
+            '<div><span class="lbl">Geschlagen</span><span class="b">' + (lost('b') || '–') + '</span></div>' +
+            '<div><span class="lbl">Verloren</span><span class="w">' + (lost('w') || '–') + '</span></div>';
+    }
+
+    function showEnd() {
+        updatePanel();
+        let title = 'Unentschieden', text = 'Die Partie endet remis.';
+        if (game.in_checkmate()) {
+            const youWin = game.turn() === 'b';
+            title = youWin ? 'Gewonnen!' : 'Schachmatt';
+            text = youWin ? 'Starke Partie – du hast die KI mattgesetzt.' : 'Die KI hat dich mattgesetzt.';
+        } else if (game.in_stalemate()) text = 'Patt – keine legalen Züge mehr.';
+        document.getElementById('endTitle').textContent = title;
+        document.getElementById('endText').textContent = text + ' (' + game.history().length + ' Halbzüge)';
+        document.getElementById('endOverlay').style.display = 'grid';
+    }
+
+    function newGame() {
+        if (isAnimating || aiThinking) return;
+        TWEEN.removeAll();
+        game.reset();
+        selectedSquare = null;
+        validMoves = [];
+        depthEl.textContent = '–';
+        document.getElementById('endOverlay').style.display = 'none';
+        initPieces3D();
+        refreshMarkers();
+        updatePanel();
+    }
+
+    function undoMove() {
+        if (isAnimating || aiThinking || !game.history().length) return;
+        game.undo();
+        if (game.turn() === 'b') game.undo();
+        selectedSquare = null;
+        validMoves = [];
+        document.getElementById('endOverlay').style.display = 'none';
+        initPieces3D();
+        refreshMarkers();
+        updatePanel();
+    }
+
+    /* ---------- KI (Minimax mit Alpha-Beta, adaptive Tiefe) ---------- */
+    const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
+
+    function evaluateBoard() {
+        let total = 0;
+        const board = game.board();
+        for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+            const p = board[i][j];
+            if (p) total += p.color === 'w' ? pieceValues[p.type] : -pieceValues[p.type];
+        }
+        return total;
+    }
+
+    function minimax(depth, alpha, beta, isMax) {
+        if (depth === 0 || game.game_over()) return evaluateBoard();
+        const moves = game.moves({ verbose: true });
+        if (isMax) {
+            let best = -Infinity;
+            for (const m of moves) {
+                game.move(m); best = Math.max(best, minimax(depth - 1, alpha, beta, false)); game.undo();
+                alpha = Math.max(alpha, best);
+                if (beta <= alpha) break;
+            }
+            return best;
+        }
+        let best = Infinity;
+        for (const m of moves) {
+            game.move(m); best = Math.min(best, minimax(depth - 1, alpha, beta, true)); game.undo();
+            beta = Math.min(beta, best);
+            if (beta <= alpha) break;
+        }
+        return best;
+    }
+
+    function makeAIMove() {
+        const moves = game.moves({ verbose: true });
+        if (!moves.length) { aiThinking = false; return showEnd(); }
+
+        const evalNow = evaluateBoard();
+        let depth = 2;
+        if (evalNow < -30) {
+            depth = 1;
+            if (Math.random() < 0.3) return executeAIMove(moves[Math.floor(Math.random() * moves.length)]);
+        } else if (evalNow > 10) depth = 3;
+        depthEl.textContent = depth;
+
+        let bestMove = null, bestValue = Infinity;
+        moves.sort(() => Math.random() - 0.5);
+        for (const m of moves) {
+            game.move(m);
+            const v = minimax(depth - 1, -Infinity, Infinity, true);
+            game.undo();
+            if (v < bestValue) { bestValue = v; bestMove = m; }
+        }
+        executeAIMove(bestMove || moves[0]);
+    }
+
+    function executeAIMove(m) {
+        const res = game.move({ from: m.from, to: m.to, promotion: 'q' });
+        aiThinking = false;
+        updatePanel();
+        animateMove3D(res, () => {
+            updatePanel();
+            if (game.game_over()) showEnd();
+        });
+    }
+
+    /* ---------- Render-Loop ---------- */
+    // Bild nach rechts versetzen, damit das Panel das Brett nicht verdeckt
+    function applyViewOffset() {
+        const shift = innerWidth > 1100 ? 150 : 0;
+        camera.aspect = innerWidth / innerHeight;
+        camera.setViewOffset(innerWidth, innerHeight, -shift, 0, innerWidth, innerHeight);
+        camera.updateProjectionMatrix();
+    }
+    function onWindowResize() {
+        applyViewOffset();
+        renderer.setSize(innerWidth, innerHeight);
+    }
+
+    function animate(time) {
+        requestAnimationFrame(animate);
+        TWEEN.update(time);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.onload = init3D;
+    </script>
+</body>
+</html>

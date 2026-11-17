@@ -85,6 +85,22 @@
   }, true);
 
   /* ---------- Speicher: Sessions, Spielzeit, Favoriten, Einstellungen ---------- */
+  /* Alte Spiel-IDs auf neue (= Ordnername) umschreiben */
+  (function migrateIds() {
+    const RENAME = { cookie_clicker: "cookie-clicker" };
+    const fix = (id) => RENAME[id] || id;
+    const plays = lsGet("gh_plays", null);
+    if (plays && plays.some((p) => RENAME[p.id])) lsSet("gh_plays", plays.map((p) => ({ id: fix(p.id), t: p.t })));
+    const favs = lsGet("gh_favs", null);
+    if (favs && favs.some((f) => RENAME[f])) lsSet("gh_favs", favs.map(fix));
+    const time = lsGet("gh_time", null);
+    if (time && Object.keys(time).some((k) => RENAME[k])) {
+      const t = {};
+      Object.keys(time).forEach((k) => { t[fix(k)] = (t[fix(k)] || 0) + time[k]; });
+      lsSet("gh_time", t);
+    }
+  })();
+
   const Store = {
     plays: () => lsGet("gh_plays", []),
     favs: () => lsGet("gh_favs", []),

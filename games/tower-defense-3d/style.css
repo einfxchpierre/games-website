@@ -1,0 +1,94 @@
+/* Tower Defense 3D – GAMEHUB-Design */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+#scene { position: fixed; inset: 0; }
+#scene canvas { display: block; outline: none; }
+
+/* ---------- Obere Leiste ---------- */
+.hud {
+    position: absolute; top: 14px; left: 14px; right: 14px; z-index: 10;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--gh-line-strong); border-radius: 16px;
+    background: rgba(10, 4, 16, 0.72); backdrop-filter: blur(12px);
+}
+.hud-left { display: flex; align-items: center; gap: 24px; }
+.hud-right { display: flex; justify-content: flex-end; gap: 8px; }
+.stat { display: flex; flex-direction: column; min-width: 44px; }
+.stat b { font-size: 18px; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.stat b.gold { color: var(--gh-warn); }
+.stat b.flash { animation: flash .5s; }
+@keyframes flash { 0% { color: var(--gh-neg); transform: scale(1.15); } 100% { transform: none; } }
+.hud-center { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.hud-center #waveText { color: var(--gh-text-2); font-variant-numeric: tabular-nums; }
+.hud-center .gh-btn kbd { margin-left: 4px; background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.15); color: #3a2a44; }
+#btnSpeed.on { border-color: var(--gh-accent); color: var(--gh-accent); }
+
+/* ---------- Dock ---------- */
+.dock {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 8px; padding: 8px;
+    border: 1px solid var(--gh-line-strong); border-radius: 18px;
+    background: rgba(10, 4, 16, 0.75); backdrop-filter: blur(12px);
+}
+.build {
+    display: flex; align-items: center; gap: 12px;
+    min-width: 172px; padding: 9px 14px 9px 10px;
+    border: 1px solid transparent; border-radius: 12px;
+    background: transparent; color: var(--gh-text); font-family: var(--gh-font);
+    text-align: left; cursor: pointer;
+    transition: background .15s, border-color .15s, opacity .15s;
+}
+.build:hover { background: rgba(255,255,255,0.04); }
+.build.selected { border-color: var(--gh-accent); background: var(--gh-accent-soft); }
+.build.poor { opacity: .45; }
+.build b { display: block; font-size: 14px; }
+.build small { display: block; color: var(--gh-text-3); font-size: 12px; }
+.build .cost { color: var(--gh-warn); font-weight: 600; }
+.build kbd { margin-left: auto; }
+.tp-dot { width: 26px; height: 26px; border-radius: 8px; flex: none; box-shadow: 0 0 16px -2px currentColor; }
+
+/* ---------- Turm-Panel ---------- */
+.tower-panel {
+    position: absolute; left: 14px; top: 92px; z-index: 10;
+    width: 270px; padding: 16px;
+    border: 1px solid var(--gh-line-strong); border-radius: 18px;
+    background: rgba(14, 7, 20, 0.82); backdrop-filter: blur(12px);
+}
+.tower-panel[hidden] { display: none; }
+.tp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.tp-head b { display: block; font-size: 17px; }
+.tp-head .close { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--gh-text-3); cursor: pointer; }
+.tp-head .close:hover { background: rgba(255,255,255,.06); color: var(--gh-text); }
+.tp-rows { border-top: 1px solid var(--gh-line); margin-bottom: 14px; }
+.tp-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--gh-line); font-size: 13.5px; }
+.tp-row span { color: var(--gh-text-2); }
+.tp-row b { font-variant-numeric: tabular-nums; }
+.tp-row .up { color: var(--gh-pos); font-weight: 600; margin-left: 4px; }
+.tp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tp-actions .gh-btn { width: 100%; height: 38px; padding: 0 8px; font-size: 13px; }
+.tp-actions .gh-btn:disabled { opacity: .4; cursor: not-allowed; }
+.tp-hint { margin: 12px 0 0; color: var(--gh-text-3); font-size: 11.5px; text-align: center; }
+
+.hint {
+    position: absolute; bottom: 92px; left: 50%; transform: translateX(-50%); z-index: 9;
+    color: var(--gh-text-3); font-size: 12px; white-space: nowrap; pointer-events: none;
+    text-shadow: 0 1px 8px rgba(0,0,0,.8);
+}
+
+/* ---------- Overlays ---------- */
+.gh-overlay { position: fixed; }
+.gh-overlay[hidden] { display: none; }
+.start-card { max-width: 460px; }
+.start-card h2 { font-size: 30px !important; margin: 4px 0 8px !important; }
+.legend { display: flex; flex-direction: column; gap: 10px; margin: 0 0 22px; text-align: left; }
+.legend div { display: grid; grid-template-columns: 26px 80px 1fr; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--gh-line); border-radius: 12px; }
+.legend .tp-dot { width: 22px; height: 22px; }
+.legend small { color: var(--gh-text-3); }
+
+.loading { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: var(--gh-bg); text-align: center; transition: opacity .5s; }
+.spinner { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid var(--gh-chip); border-top-color: var(--gh-accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Im GAMEHUB-Player etwas kompakter */
+.gh-embedded .hud { top: 10px; }

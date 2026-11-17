@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <script src="/assets/js/device-guard.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#06020a">
+  <title>GAMEHUB</title>
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+  <!-- GAMEHUB-Spielseite: lädt play.html dieses Ordners im Player (siehe /assets/js/player.js) -->
+  <div class="player open" id="player">
+    <div class="player-bar">
+      <button class="btn btn-sm" type="button" id="closePlayerBtn">Bibliothek</button>
+      <span class="name" id="playerName"></span>
+      <span class="timer" id="playerTimer">00:00</span>
+      <span class="spacer"></span>
+      <span class="muted" style="font-size:12.5px"><kbd>Shift</kbd>+<kbd>Esc</kbd> beenden</span>
+      <button class="icon-btn" type="button" aria-label="Neu laden" id="reloadBtn"></button>
+      <button class="icon-btn" type="button" aria-label="Vollbild" id="playerFsBtn"></button>
+      <a class="brand-mini" href="/">GAMEHUB</a>
+    </div>
+    <div class="player-stage">
+      <iframe id="playerFrame" title="Spiel" allow="fullscreen; autoplay; gamepad" allowfullscreen></iframe>
+      <div class="player-loading" id="playerLoading"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script src="/assets/js/games.js"></script>
+  <script src="/assets/js/core.js"></script>
+  <script src="/assets/js/player.js"></script>
+</body>
+</html>

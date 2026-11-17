@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/device-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <link rel="stylesheet" href="/games/tower-defense-3d/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="scene"></div>
+
+    <!-- Obere Leiste -->
+    <header class="hud">
+        <div class="hud-left">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="stat"><span class="gh-label">Gold</span><b class="gold" id="gold">0</b></div>
+            <div class="stat"><span class="gh-label">Leben</span><b id="lives">20</b></div>
+            <div class="stat"><span class="gh-label">Welle</span><b id="wave">0</b></div>
+            <div class="stat"><span class="gh-label">Gegner</span><b id="enemyCount">0</b></div>
+        </div>
+        <div class="hud-center" id="waveInfo">
+            <span id="waveText">Bereit</span>
+            <button class="gh-btn gh-btn-sm gh-btn-white" id="btnWave">Welle starten <kbd>Leertaste</kbd></button>
+        </div>
+        <div class="hud-right">
+            <button class="gh-btn gh-btn-sm" id="btnSpeed" title="Tempo (T)">1×</button>
+            <button class="gh-btn gh-btn-sm" id="btnPause" title="Pause (P)">Pause</button>
+        </div>
+    </header>
+
+    <!-- Turm-Auswahl -->
+    <nav class="dock" id="dock"></nav>
+
+    <!-- Ausgewählter Turm -->
+    <aside class="tower-panel" id="towerPanel" hidden>
+        <div class="tp-head">
+            <span class="tp-dot" id="tpDot"></span>
+            <div><b id="tpName">Turm</b><span class="gh-label" id="tpLevel">Stufe 1</span></div>
+            <button class="close" id="tpClose" aria-label="Schließen">✕</button>
+        </div>
+        <div class="tp-rows" id="tpRows"></div>
+        <div class="tp-actions">
+            <button class="gh-btn gh-btn-white" id="btnUpgrade">Verbessern</button>
+            <button class="gh-btn" id="btnSell">Verkaufen</button>
+        </div>
+        <p class="tp-hint"><kbd>U</kbd> verbessern · <kbd>V</kbd> verkaufen · <kbd>Esc</kbd> schließen</p>
+    </aside>
+
+    <div class="hint" id="hint">Klick: bauen / Turm wählen · Ziehen: Kamera drehen · Mausrad: Zoom · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Turmtyp · <kbd>T</kbd> Tempo</div>
+
+    <!-- Overlays -->
+    <div class="gh-overlay" id="startOverlay">
+        <div class="gh-overlay-card start-card">
+            <span class="gh-label">Strategie · 3D</span>
+            <h2>Tower Defense 3D</h2>
+            <p>Baue Türme entlang des Weges und halte jede Welle von deinem Kristall fern. Alle 5 Wellen kommt ein Boss.</p>
+            <div class="legend">
+                <div><span class="tp-dot" style="background:#e254d6"></span><b>Turm</b><small>schnell, solide</small></div>
+                <div><span class="tp-dot" style="background:#6366f1"></span><b>Sniper</b><small>weit, hoher Schaden</small></div>
+                <div><span class="tp-dot" style="background:#38bdf8"></span><b>Frost</b><small>verlangsamt Gegner</small></div>
+            </div>
+            <button class="gh-btn gh-btn-white" id="btnStart" style="height:46px;padding:0 34px">Spiel starten</button>
+        </div>
+    </div>
+    <div class="gh-overlay" id="pauseOverlay" hidden>
+        <div class="gh-overlay-card">
+            <h2>Pause</h2>
+            <p>Drücke <kbd>P</kbd>, um weiterzuspielen.</p>
+            <button class="gh-btn gh-btn-white" id="btnResume">Weiter</button>
+        </div>
+    </div>
+    <div class="gh-overlay" id="overOverlay" hidden>
+        <div class="gh-overlay-card">
+            <h2>Kristall zerstört</h2>
+            <p id="overText"></p>
+            <button class="gh-btn gh-btn-white" id="btnRestart">Neues Spiel</button>
+        </div>
+    </div>
+
+    <div class="loading" id="loading"><div><div class="spinner"></div><span class="gh-label">Schlachtfeld wird aufgebaut …</span></div></div>
+
+    <script src="/games/tower-defense-3d/game.js"></script>
+</body>
+</html>

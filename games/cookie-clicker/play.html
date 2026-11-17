@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/device-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cookie Clicker · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <link rel="stylesheet" href="/games/cookie-clicker/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="click-section">
+            <span class="gh-label">Cookies</span>
+            <h1 id="cookie-count">0 Cookies</h1>
+            <p id="cps-display">0 pro Sekunde</p>
+            
+            <div id="cookie-container" onclick="clickCookie()">
+                <div id="cookie-css">
+                    <div class="chip c1"></div>
+                    <div class="chip c2"></div>
+                    <div class="chip c3"></div>
+                    <div class="chip c4"></div>
+                    <div class="chip c5"></div>
+                    <div class="chip c6"></div>
+                </div>
+            </div>
+
+            <a href="/" class="gh-back back-btn">← Bibliothek</a>
+        </div>
+
+        <div class="shop-section">
+            <div class="shop-head"><h2>Shop</h2><span class="gh-label">Upgrades</span></div>
+            <div id="shop-items">
+                </div>
+        </div>
+    </div>
+    <script src="/games/cookie-clicker/game.js"></script>
+</body>
+</html>
