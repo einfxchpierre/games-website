@@ -1,0 +1,12 @@
+{
+  "name": "Phoenix Arcade",
+  "short_name": "Arcade",
+  "description": "Browser-Spielesammlung",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08060b",
+  "theme_color": "#08060b",
+  "icons": [
+    { "src": "/assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

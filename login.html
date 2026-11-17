@@ -1,70 +1,23 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OAuth Login Redirect</title>
-    <style>
-        body {
-            background-color: #0f0f0f;
-            color: white;
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08060b">
+  <title>Anmelden · Phoenix Arcade</title>
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body>
-    <p>Weiterleitung zur Autorisierung...</p>
+  <main class="center-page">
+    <div>
+      <div class="spinner" aria-hidden="true"></div>
+      <h1 class="page-title" style="font-size:20px">Weiterleitung zur Anmeldung …</h1>
+      <p class="muted" id="loginMsg">Du wirst gleich zu Phoenixmagie weitergeleitet.</p>
+    </div>
+  </main>
 
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            // OAuth-Konfiguration laden / Load OAuth configuration
-            const configRaw = localStorage.getItem('oauth_config');
-            if (!configRaw) {
-                alert('OAuth Konfiguration nicht gefunden.');
-                window.location.href = '/index.html';
-                return;
-            }
-
-            const config = JSON.parse(configRaw);
-            const clientId = 'px_client_3c7d0248f285a54a00679acb';
-            const redirectUri = 'https://games-phoenixmagie.vercel.app/api/callback';
-            
-            // Geforderte Scopes vereinigen / Combine requested scopes
-            const scopes = [
-                'read:username',
-                'read:level',
-                'read:xp',
-                'read:beschreibung',
-                'read:avatar',
-                'read:aurum',
-                'read:visual_name',
-                'read:mana'
-            ].join(' ');
-
-            // Generiere Zufalls-State / Generate random state
-            const state = Math.random().toString(36).substring(2);
-            localStorage.setItem('oauth_state', state);
-
-            // Auth-URL konstruieren / Construct authorization URL
-            const authBase = config.authorization_endpoint.startsWith('http') 
-                ? config.authorization_endpoint 
-                : 'https://phoenixmagie.vercel.app' + config.authorization_endpoint;
-
-            const authUrl = new URL(authBase);
-            authUrl.searchParams.append('response_type', 'code');
-            authUrl.searchParams.append('client_id', clientId);
-            authUrl.searchParams.append('redirect_uri', redirectUri);
-            authUrl.searchParams.append('scope', scopes);
-            authUrl.searchParams.append('state', state);
-
-            // Weiterleitung starten / Start redirect
-            window.location.href = authUrl.toString();
-        });
-    </script>
+  <script src="/assets/js/login.js"></script>
 </body>
 </html>

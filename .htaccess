@@ -1,0 +1,8 @@
+# Für klassisches PHP-Hosting (Apache): saubere URLs wie auf Vercel
+Options -Indexes
+DirectoryIndex index.html
+RewriteEngine On
+RewriteRule ^api/callback/?$ api/callback.php [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
