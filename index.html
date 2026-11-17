@@ -2,10 +2,11 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#08060b">
-  <meta name="description" content="Phoenix Arcade – deine Browser-Spielesammlung: Tetris, Snake, Schach, Tower Defense und mehr.">
-  <title>Phoenix Arcade</title>
+  <script src="/assets/js/device-guard.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#06020a">
+  <meta name="description" content="GAMEHUB – Desktop-Launcher für Browser-Spiele.">
+  <title>GAMEHUB</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,122 +14,114 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body data-page="hub">
+<body>
 
-<div class="app">
+<div class="launcher">
   <aside class="sidebar" id="sidebar" aria-label="Navigation"></aside>
-  <div class="scrim"></div>
 
-  <div>
-    <header class="topbar" id="topbar"></header>
+  <main class="main">
 
-    <main class="main">
-      <div class="container">
-
-        <div class="page-head">
-          <h1 class="page-title">Spiele</h1>
-          <div class="actions">
-            <label class="select">
-              <span class="sr-only">Kategorie</span>
-              <select id="categorySelect"><option value="">Alle Kategorien</option></select>
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </label>
-            <label class="select">
-              <span class="sr-only">Sortierung</span>
-              <select id="sortSelect">
-                <option value="popular">Beliebt</option>
-                <option value="recent">Zuletzt</option>
-                <option value="az">A–Z</option>
-              </select>
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </label>
-            <a class="btn" href="/konto.html" id="accountBtn">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              Konto
-            </a>
-            <button class="btn btn-primary" type="button" data-random>
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-              Zufallsspiel
-            </button>
-          </div>
+    <!-- ============ Bibliothek ============ -->
+    <section class="view" id="view-library" aria-label="Bibliothek">
+      <div class="head">
+        <h1 class="title" id="libTitle">Bibliothek</h1>
+        <div class="actions">
+          <label class="select">
+            <span class="sr-only">Kategorie</span>
+            <select id="categorySelect"><option value="">Alle Kategorien</option></select>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </label>
+          <label class="select">
+            <span class="sr-only">Sortierung</span>
+            <select id="sortSelect">
+              <option value="popular">Beliebt</option>
+              <option value="recent">Zuletzt</option>
+              <option value="az">A–Z</option>
+            </select>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </label>
+          <button class="btn" type="button" data-fullscreen id="fsBtn"></button>
+          <button class="btn btn-white" type="button" data-random id="randomBtn"></button>
         </div>
-
-        <section class="hero" aria-label="Aktivität">
-          <div>
-            <p class="metric-value" id="metricValue">0<small>Sessions</small></p>
-            <div class="metric-sub" id="metricSub"></div>
-          </div>
-          <div class="seg" role="tablist" aria-label="Zeitraum" id="rangeSeg">
-            <button type="button" data-range="7">1W</button>
-            <button type="button" data-range="30" class="active">1M</button>
-            <button type="button" data-range="90">3M</button>
-            <button type="button" data-range="365">1J</button>
-            <button type="button" data-range="max">Max</button>
-          </div>
-        </section>
-
-        <div class="chart" id="chart"><div class="chart-tip" id="chartTip"></div></div>
-
-        <div class="tabs-row">
-          <div class="tabs" role="tablist" id="viewTabs">
-            <button class="tab active" type="button" data-view="all">Alle Spiele</button>
-            <button class="tab" type="button" data-view="favs">Favoriten</button>
-            <button class="tab" type="button" data-view="recent">Zuletzt gespielt</button>
-          </div>
-          <span class="live" id="liveClock">Lokal</span>
-        </div>
-
-        <section class="stats" id="stats" aria-label="Kennzahlen"></section>
-
-        <button class="cta-dashed" type="button" data-random>
-          <span class="left">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Zufälliges Spiel starten
-          </span>
-          <span class="hint">z. B. Tetris, Snake oder Schach</span>
-        </button>
-
-        <div class="grid-2">
-          <section class="card" aria-labelledby="libTitle">
-            <div class="card-head">
-              <h2 class="card-title" id="libTitle">Bibliothek</h2>
-              <span class="card-meta" id="libCount"></span>
-            </div>
-            <div class="table-head">
-              <span>Spiel</span>
-              <span class="col-cat">Kategorie</span>
-              <span class="r col-plays">Sessions</span>
-              <span class="r col-last">Zuletzt</span>
-              <span class="r"></span>
-            </div>
-            <div id="library"></div>
-          </section>
-
-          <section class="card" aria-labelledby="distTitle">
-            <div class="card-head">
-              <h2 class="card-title" id="distTitle">Verteilung</h2>
-              <span class="card-meta" id="distMeta"></span>
-            </div>
-            <div class="card-body">
-              <div class="donut-wrap" id="donut"></div>
-              <div class="legend" id="legend"></div>
-            </div>
-          </section>
-        </div>
-
-        <div class="section-title">
-          <h2>Entdecken</h2>
-          <span class="card-meta" id="tilesMeta"></span>
-        </div>
-        <section class="tiles" id="tiles" aria-label="Alle Spiele"></section>
-
       </div>
-    </main>
+
+      <div class="hero" id="hero"></div>
+
+      <div class="tabs-row">
+        <div class="tabs" role="tablist" id="filterTabs">
+          <button class="tab active" type="button" data-filter="all">Alle Spiele</button>
+          <button class="tab" type="button" data-filter="favs">Favoriten</button>
+          <button class="tab" type="button" data-filter="recent">Zuletzt gespielt</button>
+        </div>
+        <span class="live" id="clock"></span>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="shelf-wrap">
+        <div class="shelf-head">
+          <h2 id="shelfTitle">Alle Spiele</h2>
+          <span class="shelf-hint"><kbd>←</kbd><kbd>→</kbd> auswählen · <kbd>Enter</kbd> starten · <kbd>F</kbd> Favorit</span>
+        </div>
+        <div class="shelf" id="shelf" role="listbox" aria-label="Spiele"></div>
+      </div>
+    </section>
+
+    <!-- ============ Konto ============ -->
+    <section class="view" id="view-account" aria-label="Konto">
+      <div class="head">
+        <h1 class="title">Konto</h1>
+        <div class="actions" id="accountActions"></div>
+      </div>
+      <div class="account-scroll">
+        <div class="account-grid">
+          <div>
+            <div class="card" id="profileCard"></div>
+            <div class="card">
+              <div class="card-head"><h2 class="card-title">Deine Aktivität</h2><span class="card-meta">auf diesem PC</span></div>
+              <div class="stats" id="activityStats"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2 class="card-title">Meistgespielt</h2><span class="card-meta" id="topMeta"></span></div>
+            <div id="topList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ Player ============ -->
+<div class="player" id="player" aria-hidden="true">
+  <div class="player-bar">
+    <button class="btn btn-sm" type="button" data-close-player id="closePlayerBtn"></button>
+    <span class="name" id="playerName"></span>
+    <span class="timer" id="playerTimer">00:00</span>
+    <span class="spacer"></span>
+    <span class="muted" style="font-size:12.5px"><kbd>Shift</kbd>+<kbd>Esc</kbd> beenden</span>
+    <button class="icon-btn" type="button" data-reload-player aria-label="Neu laden" id="reloadBtn"></button>
+    <button class="icon-btn" type="button" data-fullscreen aria-label="Vollbild" id="playerFsBtn"></button>
+    <span class="brand-mini">GAMEHUB</span>
+  </div>
+  <div class="player-stage">
+    <iframe id="playerFrame" title="Spiel" allow="fullscreen; autoplay; gamepad" allowfullscreen></iframe>
+    <div class="player-loading" id="playerLoading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"></div>
+
+<div class="too-small">
+  <div>
+    <h2>Fenster zu klein</h2>
+    <p>GAMEHUB ist für PC &amp; Laptop gebaut. Bitte vergrößere das Fenster.</p>
   </div>
 </div>
 
 <script src="/assets/js/games.js"></script>
 <script src="/assets/js/core.js"></script>
-<script src="/assets/js/hub.js"></script>
+<script src="/assets/js/launcher.js"></script>
 </body>
 </html>

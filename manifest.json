@@ -1,11 +1,11 @@
 {
-  "name": "Phoenix Arcade",
-  "short_name": "Arcade",
-  "description": "Browser-Spielesammlung",
+  "name": "GAMEHUB",
+  "short_name": "GAMEHUB",
+  "description": "Desktop-Launcher für Browser-Spiele",
   "start_url": "/",
-  "display": "standalone",
-  "background_color": "#08060b",
-  "theme_color": "#08060b",
+  "display": "fullscreen",
+  "background_color": "#06020a",
+  "theme_color": "#06020a",
   "icons": [
     { "src": "/assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]

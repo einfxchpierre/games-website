@@ -1,19 +1,25 @@
-# Phoenix Arcade
+# GAMEHUB
 
-Browser-Spielesammlung (Tetris, Snake, Schach, Tower Defense u. v. m.) – gebaut mit **HTML, CSS, JavaScript und PHP**.
+Vollbild-Desktop-Launcher für Browser-Spiele (Tetris, Snake, Schach, Tower Defense u. v. m.) – gebaut mit **HTML, CSS, JavaScript und PHP**.
+
+* **Nur PC & Laptop:** Smartphones und Tablets sehen einen Hinweis (`assets/js/device-guard.js`, auf jeder Seite inkl. Spielen eingebunden).
+* **Spiele starten im Launcher** (Vollbild-Player mit Timer, `Shift`+`Esc` beendet).
+* **Steuerung:** `←`/`→` auswählen, `Enter` starten, `F` Favorit, `R` Zufallsspiel, `Strg`+`K` Suche.
 
 ## Struktur
 
 | Pfad | Inhalt |
 | --- | --- |
-| `index.html` | Übersicht / Dashboard (Aktivitätschart, Kennzahlen, Bibliothek, Verteilung, Entdecken) |
-| `konto.html` | Konto-Seite (Phoenixmagie-Profil + lokale Statistiken) |
+| `index.html` | Launcher (Bibliothek, Konto-Ansicht `#konto`, Spiel-Player) |
+| `konto.html` | Leitet auf `/#konto` weiter |
 | `login.html` | Startet den OAuth-Login |
 | `api/callback.php` | OAuth-Callback: tauscht den Code gegen Tokens (PHP) |
 | `assets/css/app.css` | Design-System (Farben, Komponenten, Responsive) |
 | `assets/js/games.js` | **Spielkatalog** – neue Spiele hier eintragen |
-| `assets/js/core.js` | Sidebar, Einstellungen, Favoriten/Sessions-Speicher, Auth |
-| `assets/js/hub.js` / `konto.js` / `login.js` | Seitenlogik |
+| `assets/js/core.js` | Icons, lokaler Speicher (Sessions, Spielzeit, Favoriten), Auth |
+| `assets/js/launcher.js` | Launcher-Oberfläche & Player |
+| `assets/js/device-guard.js` | Sperre für Mobilgeräte |
+| `assets/js/login.js` | OAuth-Weiterleitung |
 | `games/*` | Die einzelnen Spiele |
 
 ## Neues Spiel hinzufügen
@@ -21,7 +27,7 @@ Browser-Spielesammlung (Tetris, Snake, Schach, Tower Defense u. v. m.) – gebau
 In `assets/js/games.js` ein Objekt ergänzen:
 
 ```js
-{ id: "mein-spiel", name: "Mein Spiel", category: "Arcade", path: "/games/mein-spiel/index.html", icon: "/pictures/icons/mein-spiel.png", color: "#e24fd4", description: "Kurzbeschreibung." }
+{ id: "mein-spiel", name: "Mein Spiel", category: "Arcade", controls: "Tastatur", path: "/games/mein-spiel/index.html", icon: "/pictures/icons/mein-spiel.png", color: "#e254d6", description: "Kurzbeschreibung." }
 ```
 
 `icon` ist optional – ohne Bild wird ein Farbsymbol mit Initialen erzeugt. Neue Kategorien bekommen ihre Farbe in `CATEGORY_COLORS`.

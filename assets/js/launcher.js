@@ -1,0 +1,539 @@
+/* ==========================================================================
+   GAMEHUB – Launcher
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  const { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, Auth, toast, lsSet } = window.GH;
+  const GAMES = window.GAMES_DATA || [];
+  const COLORS = window.CATEGORY_COLORS || {};
+  const BY_ID = Object.fromEntries(GAMES.map((g) => [g.id, g]));
+  const DAY = 86400000;
+  const $ = (id) => document.getElementById(id);
+
+  const state = {
+    view: "library",
+    filter: "all",
+    category: "",
+    sort: "popular",
+    query: "",
+    selected: null
+  };
+
+  /* ==========================================================================
+     Routing (Hash)
+     ========================================================================== */
+  function readHash() {
+    const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+    state.view = h === "konto" ? "account" : "library";
+    state.filter = h === "favoriten" ? "favs" : h === "zuletzt" ? "recent" : "all";
+    state.category = h.indexOf("kategorie=") === 0 ? h.slice(10) : "";
+  }
+
+  function navKey() {
+    if (state.view === "account") return "account";
+    if (state.category) return "cat:" + state.category;
+    return state.filter;
+  }
+
+  /* ==========================================================================
+     Daten
+     ========================================================================== */
+  function list() {
+    const per = Store.perGame();
+    const favs = Store.favs();
+    const q = state.query.trim().toLowerCase();
+    let games = GAMES.filter((g) =>
+      (!state.category || g.category === state.category) &&
+      (!q || g.name.toLowerCase().includes(q) || g.category.toLowerCase().includes(q))
+    );
+    if (state.filter === "favs") games = games.filter((g) => favs.includes(g.id));
+    if (state.filter === "recent") games = games.filter((g) => per[g.id] && per[g.id].last);
+    const s = (g) => per[g.id] || { count: 0, last: 0 };
+    const sort = state.filter === "recent" ? "recent" : state.sort;
+    games.sort((a, b) => {
+      if (sort === "az") return a.name.localeCompare(b.name, "de");
+      if (sort === "recent") return s(b).last - s(a).last || a.name.localeCompare(b.name, "de");
+      return s(b).count - s(a).count || a.name.localeCompare(b.name, "de");
+    });
+    return games;
+  }
+
+  function sessionsIn(id, from, to) {
+    return Store.plays().filter((p) => p.id === id && p.t >= from && p.t < to).length;
+  }
+
+  /* ==========================================================================
+     Sidebar
+     ========================================================================== */
+  function renderSidebar() {
+    const cats = {};
+    GAMES.forEach((g) => { cats[g.category] = (cats[g.category] || 0) + 1; });
+    const favCount = Store.favs().length;
+    const item = (key, href, ic, label, extra) =>
+      '<a class="nav-item" href="' + href + '" data-nav="' + key + '">' + icon(ic) + "<span>" + label + "</span>" + (extra || "") + "</a>";
+
+    const loggedIn = !!Auth.token();
+    const p = Auth.profile();
+    const name = loggedIn ? (p && (p.visual_name || p.username)) || "Angemeldet" : "Gast";
+    const sub = loggedIn ? (p && p.username ? "@" + p.username : "Phoenixmagie") : "Nicht angemeldet";
+    const avatar = loggedIn && p && p.avatar
+      ? '<img class="avatar" src="' + esc(p.avatar) + '" alt="">'
+      : '<span class="avatar">' + esc(initials(name) || "G") + "</span>";
+
+    $("sidebar").innerHTML =
+      '<a class="brand" href="#">' + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h4M8 10v4"/><path d="M15 13h.01M18 11h.01"/><rect x="2" y="6" width="20" height="12" rx="5"/></svg>' + "GAMEHUB</a>" +
+      '<label class="search"><span class="sr-only">Spiele suchen</span>' + icon("search") +
+      '<input id="search" type="search" placeholder="Suchen" autocomplete="off" spellcheck="false"><kbd>Strg K</kbd></label>' +
+      '<div class="nav-scroll"><nav class="nav">' +
+      item("all", "#", "library", "Bibliothek", '<span class="count">' + GAMES.length + "</span>") +
+      item("favs", "#favoriten", "star", "Favoriten", favCount ? '<span class="count">' + favCount + "</span>" : "") +
+      item("recent", "#zuletzt", "clock", "Zuletzt gespielt") +
+      item("account", "#konto", "user", "Konto") +
+      '<div class="nav-divider"></div><div class="nav-label">Kategorien</div>' +
+      Object.keys(cats).sort().map((c) =>
+        '<a class="nav-item" href="#kategorie=' + encodeURIComponent(c) + '" data-nav="cat:' + esc(c) + '">' +
+        '<span class="nav-dot" style="background:' + esc(COLORS[c] || "#888") + '"></span><span>' + esc(c) + '</span><span class="count">' + cats[c] + "</span></a>"
+      ).join("") +
+      "</nav></div>" +
+      '<div class="sidebar-foot">' +
+      '<button class="nav-item" type="button" data-settings>' + icon("settings") + "<span>Einstellungen</span></button>" +
+      '<div class="user">' + avatar +
+      '<a class="user-meta" href="#konto"><strong>' + esc(name) + "</strong><small>" + esc(sub) + "</small></a>" +
+      (loggedIn
+        ? '<a class="icon-btn" href="#konto" aria-label="Konto">' + icon("eye") + "</a>"
+        : '<button class="icon-btn" type="button" data-login aria-label="Anmelden">' + icon("login") + "</button>") +
+      "</div></div>";
+
+    const search = $("search");
+    search.value = state.query;
+    search.addEventListener("input", () => {
+      state.query = search.value;
+      if (state.view !== "library") { location.hash = ""; }
+      renderShelf(true);
+    });
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { const g = list()[0]; if (g) { select(g.id); search.blur(); } }
+      if (e.key === "Escape") { search.value = ""; state.query = ""; search.blur(); renderShelf(true); }
+    });
+    markNav();
+  }
+
+  function markNav() {
+    document.querySelectorAll(".sidebar [data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === navKey()));
+  }
+
+  /* ==========================================================================
+     Bibliothek
+     ========================================================================== */
+  function renderHero() {
+    const g = BY_ID[state.selected];
+    if (!g) {
+      $("hero").innerHTML = '<div><p class="hero-name">Keine Spiele</p><p class="hero-desc">Für diese Auswahl gibt es keine Spiele.</p></div>';
+      $("stats").innerHTML = "";
+      return;
+    }
+    const per = Store.perGame()[g.id] || { count: 0, last: 0, time: 0 };
+    const fav = Store.favs().includes(g.id);
+    const now = Date.now();
+    const cur = sessionsIn(g.id, now - 30 * DAY, now + 1);
+    const prev = sessionsIn(g.id, now - 60 * DAY, now - 30 * DAY);
+    const d = cur - prev;
+
+    let sub;
+    if (per.count) {
+      const arrow = '<svg class="icon" viewBox="0 0 24 24" style="transform:rotate(' + (d >= 0 ? 0 : 180) + 'deg)"><path d="M6 15l6-6 6 6"/></svg>';
+      sub = '<span class="delta' + (d < 0 ? " neg" : "") + '">' + arrow + fmt(cur) + (cur === 1 ? " Session (" : " Sessions (") + (d >= 0 ? "+" : "") + fmt(d) + ")</span>" +
+        '<span class="muted">30 Tage · zuletzt ' + relTime(per.last) + "</span>";
+    } else {
+      sub = '<span class="delta">Neu für dich</span><span class="muted">noch nicht gespielt</span>';
+    }
+
+    $("hero").innerHTML =
+      '<div class="fade-in" style="min-width:0">' +
+        '<div class="hero-kicker"><span class="chip"><span class="dot" style="background:' + esc(COLORS[g.category] || "#888") + '"></span>' + esc(g.category) + "</span>" +
+        "<span>" + esc(g.controls) + "</span></div>" +
+        '<h2 class="hero-name">' + esc(g.name) + "</h2>" +
+        '<div class="hero-sub">' + sub + "</div>" +
+        '<p class="hero-desc">' + esc(g.description) + "</p>" +
+        '<div class="hero-actions">' +
+          '<button class="btn btn-white btn-lg btn-play" type="button" data-launch="' + esc(g.id) + '">' + icon("play") + "Spielen</button>" +
+          '<button class="btn btn-lg' + (fav ? " on" : "") + '" type="button" data-fav="' + esc(g.id) + '">' + icon("star") + (fav ? "Favorit" : "Merken") + "</button>" +
+          '<span class="hero-hint"><kbd>Enter</kbd> starten</span>' +
+        "</div>" +
+      "</div>" +
+      '<div class="cover fade-in" style="--cover-color:' + esc(g.color) + '">' + gameIcon(g) + "</div>";
+
+    // Rang nach Sessions
+    const all = Store.perGame();
+    const ranked = GAMES.filter((x) => all[x.id] && all[x.id].count).sort((a, b) => all[b.id].count - all[a.id].count);
+    const rank = ranked.findIndex((x) => x.id === g.id);
+
+    const cell = (label, value) => '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + "</div></div>";
+    $("stats").innerHTML =
+      cell("Kategorie", esc(g.category)) +
+      cell("Sessions", per.count ? fmt(per.count) : "–") +
+      cell("Spielzeit", duration(per.time)) +
+      cell("Zuletzt gespielt", per.last ? relTime(per.last) : "–") +
+      cell("Rang", rank >= 0 ? "#" + (rank + 1) + ' <small class="muted">von ' + ranked.length + "</small>" : "–") +
+      cell("Favorit", fav ? 'Ja <small class="delta">★</small>' : "–");
+  }
+
+  function renderShelf(keepSelection) {
+    const games = list();
+    if (!keepSelection || !games.some((g) => g.id === state.selected)) {
+      if (!games.some((g) => g.id === state.selected)) state.selected = games.length ? games[0].id : null;
+    }
+    const favs = Store.favs();
+    const per = Store.perGame();
+
+    const title = state.category || { all: "Alle Spiele", favs: "Favoriten", recent: "Zuletzt gespielt" }[state.filter];
+    $("shelfTitle").innerHTML = esc(title) + ' <span class="muted" style="font-weight:500">· ' + games.length + "</span>";
+    $("libTitle").textContent = state.category ? state.category : state.filter === "favs" ? "Favoriten" : state.filter === "recent" ? "Zuletzt gespielt" : "Bibliothek";
+
+    $("shelf").innerHTML = games.length
+      ? games.map((g) =>
+          '<button class="game-card' + (g.id === state.selected ? " selected" : "") + '" type="button" role="option" data-select="' + esc(g.id) + '" aria-selected="' + (g.id === state.selected) + '">' +
+          '<span class="art" style="--c:' + esc(g.color) + '">' + gameIcon(g) + "</span>" +
+          '<span class="play" data-launch="' + esc(g.id) + '" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg></span>' +
+          (favs.includes(g.id) ? '<svg class="fav" viewBox="0 0 24 24" aria-label="Favorit"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>' : "") +
+          '<span class="name">' + esc(g.name) + "</span>" +
+          '<span class="meta">' + esc(g.category) + (per[g.id] && per[g.id].count ? " · " + fmt(per[g.id].count) + "×" : "") + "</span>" +
+          "</button>"
+        ).join("")
+      : '<div class="empty">' + (state.filter === "favs" ? "Noch keine Favoriten – drücke <kbd>F</kbd> bei einem Spiel." : state.filter === "recent" ? "Du hast noch nichts gespielt." : "Keine Spiele gefunden.") + "</div>";
+
+    renderHero();
+    $("filterTabs").querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.filter === state.filter));
+    $("categorySelect").value = state.category;
+  }
+
+  function select(id, scroll) {
+    if (!BY_ID[id]) return;
+    state.selected = id;
+    document.querySelectorAll(".game-card").forEach((c) => {
+      const on = c.dataset.select === id;
+      c.classList.toggle("selected", on);
+      c.setAttribute("aria-selected", on);
+      if (on && scroll !== false) c.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    });
+    renderHero();
+  }
+
+  function moveSelection(step) {
+    const games = list();
+    if (!games.length) return;
+    const i = games.findIndex((g) => g.id === state.selected);
+    const next = games[(i + step + games.length) % games.length];
+    select(next.id);
+  }
+
+  /* ==========================================================================
+     Konto
+     ========================================================================== */
+  function renderAccount() {
+    const loggedIn = !!Auth.token();
+    $("accountActions").innerHTML = loggedIn
+      ? '<a class="btn" href="#">Zur Bibliothek</a><button class="btn btn-white" type="button" data-logout>' + icon("logout") + "Abmelden</button>"
+      : '<a class="btn" href="#">Zur Bibliothek</a><button class="btn btn-white" type="button" data-login>' + icon("login") + "Anmelden</button>";
+
+    if (!loggedIn) {
+      $("profileCard").innerHTML =
+        '<div class="profile"><span class="avatar">G</span><div><h2>Du spielst als Gast</h2>' +
+        "<p>Melde dich mit deinem Phoenixmagie-Konto an, um Level, XP, Aurum und Mana zu sehen.</p></div></div>" +
+        '<div style="padding:0 24px 24px"><button class="btn btn-accent" type="button" data-login>' + icon("login") + "Mit Phoenixmagie anmelden</button></div>";
+    } else {
+      const sk = '<span class="skeleton"></span>';
+      $("profileCard").innerHTML =
+        '<div class="profile"><span class="avatar" id="pAvatar">?</span><div style="min-width:0"><h2 id="pName">' + sk + '</h2><p id="pUser">' + sk + "</p></div></div>" +
+        '<p class="bio" id="pBio"></p>' +
+        '<div class="stats">' +
+        '<div class="stat"><div class="stat-label">Level</div><div class="stat-value" id="pLevel">' + sk + '</div><div class="xp-bar"><span id="pXpBar"></span></div></div>' +
+        '<div class="stat"><div class="stat-label">XP</div><div class="stat-value" id="pXp">' + sk + "</div></div>" +
+        '<div class="stat"><div class="stat-label">Aurum</div><div class="stat-value" id="pAurum">' + sk + "</div></div>" +
+        '<div class="stat"><div class="stat-label">Mana</div><div class="stat-value" id="pMana">' + sk + "</div></div></div>";
+      const cached = Auth.profile();
+      if (cached) fillProfile(cached);
+      loadProfile();
+    }
+
+    // Lokale Aktivität
+    const plays = Store.plays();
+    const per = Store.perGame();
+    const totalTime = Object.values(Store.time()).reduce((a, b) => a + b, 0);
+    const played = GAMES.filter((g) => per[g.id] && per[g.id].count).length;
+    const cell = (l, v) => '<div class="stat"><div class="stat-label">' + l + '</div><div class="stat-value">' + v + "</div></div>";
+    $("activityStats").innerHTML =
+      cell("Sessions", fmt(plays.length)) +
+      cell("Spielzeit", duration(totalTime)) +
+      cell("Gespielt", fmt(played) + ' <small class="muted">/ ' + GAMES.length + "</small>") +
+      cell("Favoriten", fmt(Store.favs().length));
+
+    const top = GAMES.filter((g) => per[g.id] && per[g.id].count).sort((a, b) => per[b.id].count - per[a.id].count).slice(0, 6);
+    $("topMeta").textContent = top.length ? "nach Sessions" : "";
+    $("topList").innerHTML = top.length
+      ? top.map((g) =>
+          '<div class="list-row" data-goto="' + esc(g.id) + '">' + gameIcon(g) +
+          '<div><div style="font-weight:600">' + esc(g.name) + "</div><small>" + esc(g.category) + " · " + relTime(per[g.id].last) + "</small></div>" +
+          '<div class="num">' + fmt(per[g.id].count) + "×<small>" + duration(per[g.id].time) + "</small></div></div>"
+        ).join("")
+      : '<div class="empty" style="padding:8px 22px 24px">Starte ein Spiel – deine Favoriten tauchen dann hier auf.</div>';
+  }
+
+  function fillProfile(d) {
+    const name = d.visual_name || d.username || "Unbekannt";
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    set("pName", name);
+    set("pUser", "@" + (d.username || "user"));
+    set("pBio", d.beschreibung || "Keine Beschreibung angegeben.");
+    set("pLevel", fmt(d.level ?? 0));
+    set("pXp", fmt(d.xp ?? 0));
+    set("pAurum", fmt(d.aurum ?? 0));
+    set("pMana", fmt(d.mana ?? 0));
+    const bar = $("pXpBar");
+    if (bar) setTimeout(() => { bar.style.width = Math.min(100, ((Number(d.xp) || 0) % 1000) / 10) + "%"; }, 60);
+    const av = $("pAvatar");
+    if (av) {
+      if (d.avatar) av.outerHTML = '<img class="avatar" id="pAvatar" src="' + esc(d.avatar) + '" alt="">';
+      else av.textContent = initials(name);
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch(Auth.userinfoEndpoint(), { headers: { Authorization: "Bearer " + Auth.token() } });
+      if (!res.ok) throw new Error("Token ungültig");
+      const d = await res.json();
+      lsSet("gh_profile", {
+        username: d.username, visual_name: d.visual_name, avatar: d.avatar, beschreibung: d.beschreibung,
+        level: d.level, xp: d.xp, aurum: d.aurum, mana: d.mana
+      });
+      fillProfile(d);
+      renderSidebar();
+    } catch (err) {
+      toast("Sitzung abgelaufen – bitte erneut anmelden.");
+      setTimeout(() => Auth.logout(), 1500);
+    }
+  }
+
+  /* ==========================================================================
+     Player – Spiel startet im Launcher (Vollbild)
+     ========================================================================== */
+  const player = { id: null, started: 0, timer: null, enteredFs: false };
+
+  function launch(id) {
+    const g = BY_ID[id];
+    if (!g) return;
+    if (player.id) closePlayer();
+    Store.recordPlay(id);
+    player.id = id;
+    player.started = Date.now();
+
+    if (Store.settings().fullscreen && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().then(() => { player.enteredFs = true; }).catch(() => {});
+    }
+
+    $("playerName").innerHTML = gameIcon(g) + esc(g.name);
+    $("playerLoading").classList.remove("hidden");
+    const frame = $("playerFrame");
+    frame.src = g.path;
+    const el = $("player");
+    el.classList.add("open");
+    el.setAttribute("aria-hidden", "false");
+
+    const tick = () => {
+      const s = Math.floor((Date.now() - player.started) / 1000);
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      $("playerTimer").textContent = (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+    };
+    tick();
+    player.timer = setInterval(tick, 1000);
+  }
+
+  function closePlayer() {
+    if (!player.id) return;
+    Store.addTime(player.id, Date.now() - player.started);
+    clearInterval(player.timer);
+    const id = player.id;
+    player.id = null;
+    $("playerFrame").src = "about:blank";
+    const el = $("player");
+    el.classList.remove("open");
+    el.setAttribute("aria-hidden", "true");
+    if (player.enteredFs && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    player.enteredFs = false;
+    renderSidebar();
+    if (state.view === "library") { renderShelf(true); select(id); }
+    else renderAccount();
+  }
+
+  // Wenn ein Spiel seinen eigenen "Zurück zum Hub"-Link nutzt → Player schließen
+  $("playerFrame").addEventListener("load", () => {
+    const frame = $("playerFrame");
+    let path = null;
+    try { path = frame.contentWindow.location.pathname; } catch (e) { /* fremde Herkunft */ }
+    if (!player.id) return;
+    if (path === "/" || path === "/index.html" || path === "/index") { closePlayer(); return; }
+    $("playerLoading").classList.add("hidden");
+    try {
+      frame.contentWindow.focus();
+      frame.contentWindow.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && e.shiftKey) closePlayer();
+      });
+    } catch (e) { /* egal */ }
+  });
+
+  /* ==========================================================================
+     Vollbild, Einstellungen
+     ========================================================================== */
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => toast("Vollbild nicht verfügbar"));
+  }
+
+  function updateFsButtons() {
+    const fs = !!document.fullscreenElement;
+    $("fsBtn").innerHTML = icon(fs ? "minimize" : "maximize") + (fs ? "Fenster" : "Vollbild");
+    $("playerFsBtn").innerHTML = icon(fs ? "minimize" : "maximize");
+  }
+
+  function openSettings() {
+    const modal = $("settingsModal");
+    const s = Store.settings();
+    const loggedIn = !!Auth.token();
+    modal.innerHTML =
+      '<div class="modal-card">' +
+      '<div class="modal-head"><h2 id="settingsTitle">Einstellungen</h2><button class="icon-btn" type="button" data-close-modal aria-label="Schließen">' + icon("x") + "</button></div>" +
+      '<div class="setting"><div><strong>Spiele im Vollbild starten</strong><span>Launcher wechselt beim Start automatisch ins Vollbild</span></div>' +
+      '<label class="switch"><input type="checkbox" id="setFs"' + (s.fullscreen ? " checked" : "") + '><i></i></label></div>' +
+      '<div class="setting"><div><strong>Konto</strong><span>' + (loggedIn ? "Mit Phoenixmagie verbunden" : "Nicht angemeldet") + "</span></div>" +
+      (loggedIn ? '<button class="btn btn-sm" type="button" data-logout>Abmelden</button>' : '<button class="btn btn-sm btn-accent" type="button" data-login>Anmelden</button>') + "</div>" +
+      '<div class="setting"><div><strong>Lokale Daten</strong><span>Sessions, Spielzeit und Favoriten löschen</span></div>' +
+      '<button class="btn btn-sm" type="button" data-reset style="color:var(--neg)">' + icon("trash") + "Zurücksetzen</button></div>" +
+      "</div>";
+    modal.classList.add("open");
+    $("setFs").addEventListener("change", (e) => Store.setSetting("fullscreen", e.target.checked));
+  }
+  const closeModal = () => $("settingsModal").classList.remove("open");
+
+  function randomGame() {
+    const pool = list().length ? list() : GAMES;
+    const g = pool[Math.floor(Math.random() * pool.length)];
+    if (g) { select(g.id); launch(g.id); }
+  }
+
+  /* ==========================================================================
+     Render & Events
+     ========================================================================== */
+  function render() {
+    $("view-library").classList.toggle("active", state.view === "library");
+    $("view-account").classList.toggle("active", state.view === "account");
+    if (state.view === "library") renderShelf(true);
+    else renderAccount();
+    markNav();
+  }
+
+  function init() {
+    try { state.sort = localStorage.getItem("gh_sort") || state.sort; } catch (e) { /* egal */ }
+    readHash();
+    renderSidebar();
+
+    const cats = Array.from(new Set(GAMES.map((g) => g.category))).sort();
+    $("categorySelect").insertAdjacentHTML("beforeend", cats.map((c) => '<option value="' + esc(c) + '">' + esc(c) + "</option>").join(""));
+    $("sortSelect").value = state.sort;
+    $("randomBtn").innerHTML = icon("shuffle") + "Zufallsspiel";
+    $("closePlayerBtn").innerHTML = icon("arrowLeft") + "Bibliothek";
+    $("reloadBtn").innerHTML = icon("reload");
+    updateFsButtons();
+
+    $("categorySelect").addEventListener("change", (e) => {
+      location.hash = e.target.value ? "kategorie=" + encodeURIComponent(e.target.value) : "";
+    });
+    $("sortSelect").addEventListener("change", (e) => {
+      state.sort = e.target.value;
+      try { localStorage.setItem("gh_sort", state.sort); } catch (err) { /* egal */ }
+      renderShelf(true);
+    });
+    $("filterTabs").addEventListener("click", (e) => {
+      const t = e.target.closest("[data-filter]");
+      if (!t) return;
+      location.hash = { all: "", favs: "favoriten", recent: "zuletzt" }[t.dataset.filter];
+    });
+
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-launch],[data-select],[data-fav],[data-random],[data-fullscreen],[data-settings],[data-close-modal],[data-login],[data-logout],[data-reset],[data-close-player],[data-reload-player],[data-goto]");
+      if (e.target === $("settingsModal")) closeModal();
+      if (!t) return;
+      if (t.matches("[data-launch]")) { e.stopPropagation(); select(t.dataset.launch, false); launch(t.dataset.launch); }
+      else if (t.matches("[data-select]")) { if (e.detail < 2) select(t.dataset.select); }
+      else if (t.matches("[data-fav]")) {
+        const on = Store.toggleFav(t.dataset.fav);
+        toast(on ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
+        renderSidebar(); renderShelf(true);
+      }
+      else if (t.matches("[data-random]")) randomGame();
+      else if (t.matches("[data-fullscreen]")) toggleFullscreen();
+      else if (t.matches("[data-settings]")) openSettings();
+      else if (t.matches("[data-close-modal]")) closeModal();
+      else if (t.matches("[data-login]")) Auth.login();
+      else if (t.matches("[data-logout]")) Auth.logout();
+      else if (t.matches("[data-reset]")) {
+        if (confirm("Alle lokalen Sessions, Spielzeiten und Favoriten löschen?")) {
+          Store.reset(); closeModal(); toast("Lokale Daten zurückgesetzt"); renderSidebar(); render();
+        }
+      }
+      else if (t.matches("[data-close-player]")) closePlayer();
+      else if (t.matches("[data-reload-player]")) { $("playerLoading").classList.remove("hidden"); $("playerFrame").contentWindow.location.reload(); }
+      else if (t.matches("[data-goto]")) { state.selected = t.dataset.goto; location.hash = ""; }
+    });
+
+    // Doppelklick auf Karte startet das Spiel
+    $("shelf").addEventListener("dblclick", (e) => {
+      const c = e.target.closest("[data-select]");
+      if (c) launch(c.dataset.select);
+    });
+
+    // Mausrad scrollt das Regal horizontal
+    $("shelf").addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { $("shelf").scrollLeft += e.deltaY; e.preventDefault(); }
+    }, { passive: false });
+
+    document.addEventListener("keydown", (e) => {
+      const typing = e.target.matches && e.target.matches("input, select, textarea");
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (player.id) return;
+        $("search").focus(); $("search").select();
+        return;
+      }
+      if (player.id) {
+        if (e.key === "Escape" && e.shiftKey) closePlayer();
+        return;
+      }
+      if (e.key === "Escape") { closeModal(); return; }
+      if (typing || $("settingsModal").classList.contains("open") || state.view !== "library") return;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); moveSelection(1); }
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); moveSelection(-1); }
+      else if (e.key === "Enter" && state.selected) { e.preventDefault(); launch(state.selected); }
+      else if (e.key.toLowerCase() === "f" && state.selected) {
+        const on = Store.toggleFav(state.selected);
+        toast(on ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
+        renderSidebar(); renderShelf(true);
+      }
+      else if (e.key.toLowerCase() === "r") randomGame();
+    });
+
+    window.addEventListener("hashchange", () => { readHash(); render(); });
+    document.addEventListener("fullscreenchange", updateFsButtons);
+    window.addEventListener("beforeunload", () => { if (player.id) Store.addTime(player.id, Date.now() - player.started); });
+
+    const clock = $("clock");
+    const tick = () => { clock.textContent = "Lokal · GAMEHUB · " + new Date().toLocaleTimeString("de-DE"); };
+    tick();
+    setInterval(tick, 1000);
+
+    render();
+  }
+
+  init();
+})();

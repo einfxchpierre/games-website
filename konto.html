@@ -2,84 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#08060b">
-  <title>Konto · Phoenix Arcade</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/assets/css/app.css">
+  <title>Konto · GAMEHUB</title>
+  <meta http-equiv="refresh" content="0; url=/#konto">
+  <script>location.replace("/#konto");</script>
 </head>
-<body data-page="account">
-
-<div class="app">
-  <aside class="sidebar" id="sidebar" aria-label="Navigation"></aside>
-  <div class="scrim"></div>
-
-  <div>
-    <header class="topbar" id="topbar"></header>
-
-    <main class="main">
-      <div class="container" style="max-width: 980px">
-
-        <div class="page-head">
-          <h1 class="page-title">Konto</h1>
-          <div class="actions" id="accountActions"></div>
-        </div>
-
-        <!-- Angemeldet -->
-        <section class="card" id="profileCard" hidden>
-          <div class="profile">
-            <span class="avatar" id="userAvatar">?</span>
-            <div style="min-width:0">
-              <h2 id="visualName"><span class="skeleton"></span></h2>
-              <p id="username"><span class="skeleton" style="min-width:60px"></span></p>
-            </div>
-          </div>
-          <p class="bio" id="beschreibung"></p>
-          <div class="stats stats-4">
-            <div class="stat">
-              <div class="stat-label">Level</div>
-              <div class="stat-value" id="valLevel"><span class="skeleton" style="min-width:40px"></span></div>
-              <div class="xp-bar"><span id="xpBar"></span></div>
-            </div>
-            <div class="stat"><div class="stat-label">XP</div><div class="stat-value" id="valXP"><span class="skeleton" style="min-width:40px"></span></div></div>
-            <div class="stat"><div class="stat-label">Aurum</div><div class="stat-value" id="valAurum"><span class="skeleton" style="min-width:40px"></span></div></div>
-            <div class="stat"><div class="stat-label">Mana</div><div class="stat-value" id="valMana"><span class="skeleton" style="min-width:40px"></span></div></div>
-          </div>
-        </section>
-
-        <!-- Nicht angemeldet -->
-        <section class="card" id="guestCard" hidden>
-          <div class="profile">
-            <span class="avatar">G</span>
-            <div>
-              <h2>Du spielst als Gast</h2>
-              <p>Melde dich mit deinem Phoenixmagie-Konto an, um Level, XP, Aurum und Mana zu sehen.</p>
-            </div>
-          </div>
-          <div class="card-body">
-            <button class="btn btn-accent" type="button" data-login>
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-              Mit Phoenixmagie anmelden
-            </button>
-          </div>
-        </section>
-
-        <div class="section-title"><h2>Deine Aktivität</h2><span class="card-meta">lokal in diesem Browser</span></div>
-        <section class="card">
-          <div class="stats stats-4" style="border-top:0" id="localStats"></div>
-        </section>
-
-      </div>
-    </main>
-  </div>
-</div>
-
-<script src="/assets/js/games.js"></script>
-<script src="/assets/js/core.js"></script>
-<script src="/assets/js/konto.js"></script>
-</body>
+<body></body>
 </html>

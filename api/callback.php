@@ -1,6 +1,6 @@
 <?php
 /**
- * Phoenix Arcade – OAuth-Callback
+ * GAMEHUB – OAuth-Callback
  *
  * Tauscht den Authorization-Code gegen Tokens beim Phoenixmagie-Provider
  * und übergibt sie an den Browser (localStorage), danach Weiterleitung zu /konto.
@@ -146,9 +146,10 @@ header('Referrer-Policy: no-referrer');
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <script src="/assets/js/device-guard.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#08060b">
-  <title>Anmeldung · Phoenix Arcade</title>
+  <meta name="theme-color" content="#06020a">
+  <title>Anmeldung · GAMEHUB</title>
   <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/assets/css/app.css">
@@ -178,7 +179,7 @@ header('Referrer-Policy: no-referrer');
         var refresh = <?= $refreshToken ?>;
         if (refresh) localStorage.setItem('refresh_token', refresh);
       } catch (e) {}
-      location.replace('/konto.html');
+      location.replace('/#konto');
     })();
   </script>
 </body>
