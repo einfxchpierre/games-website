@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Draw a Circle 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; touch-action: none; }
+        .top { position: fixed; top: calc(64px + env(safe-area-inset-top)); left: 0; right: 0; z-index: 15; text-align: center; pointer-events: none; }
+        .top h1 { margin: 2px 0 6px; font-size: 34px; letter-spacing: -0.04em; }
+        #info { color: var(--gh-text-2); font-size: 14.5px; padding: 0 16px; }
+        .challenges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 12px; pointer-events: auto; }
+        .ch { min-width: 40px; height: 32px; padding: 0 12px; border: 1px solid var(--gh-line-strong); border-radius: 999px; background: rgba(10,4,16,.6); color: var(--gh-text-2); font: 600 13px var(--gh-font); cursor: pointer; }
+        .ch.on { background: #fff; border-color: #fff; color: #120816; }
+        .ch.done:not(.on) { color: var(--gh-pos); border-color: rgba(61,220,151,.4); }
+        .ch:disabled { opacity: .35; cursor: not-allowed; }
+        .result { position: fixed; left: 50%; top: 55%; transform: translate(-50%, -50%) scale(.6); z-index: 16; text-align: center; pointer-events: none; opacity: 0; transition: opacity .3s, transform .4s cubic-bezier(.175,.885,.32,1.275); }
+        .result.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .result b { display: block; font-size: 84px; font-weight: 800; letter-spacing: -0.05em; text-shadow: 0 0 40px currentColor; }
+        .again { position: fixed; bottom: calc(26px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 16; height: 46px; padding: 0 30px; }
+        .again[hidden] { display: none; }
+        @media (max-width: 820px) { .top h1 { font-size: 26px; } .result b { font-size: 60px; } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="gh-hud-stat"><span class="gh-label">Bestwert</span><b id="best">–</b></div>
+        </div>
+    </div>
+    <div class="top">
+        <span class="gh-label">Geschick · 3D</span>
+        <h1>Perfekter Kreis</h1>
+        <div id="info">Zeichne einen Kreis auf die Scheibe!</div>
+        <div class="challenges" id="challenges"></div>
+    </div>
+    <div class="result" id="result"><b id="pct">0 %</b><span class="gh-label">Genauigkeit</span></div>
+    <button class="gh-btn gh-btn-white again" id="again" hidden>Nochmal versuchen</button>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Scheibe wird poliert …</span></div></div>
+
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/drawacircle/challenges.js"></script>
+    <script src="/games/drawacircle-3d/game.js"></script>
+</body>
+</html>

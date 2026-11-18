@@ -81,15 +81,17 @@
     },
     /** Abgerundeter Würfel (für Blöcke, Plattformen) */
     roundedBox(w, h, d, r, seg) {
-      r = Math.min(r, w / 2, h / 2, d / 2);
+      // Innere Form (um r verkleinert) + Fase r → Gesamtmaß exakt w × h × d
+      r = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001);
+      const iw = w - 2 * r, ih = h - 2 * r, cr = Math.min(iw, ih) * 0.2;
       const shape = new T.Shape();
-      const x = -w / 2, y = -h / 2;
-      shape.moveTo(x + r, y);
-      shape.lineTo(x + w - r, y); shape.quadraticCurveTo(x + w, y, x + w, y + r);
-      shape.lineTo(x + w, y + h - r); shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      shape.lineTo(x + r, y + h); shape.quadraticCurveTo(x, y + h, x, y + h - r);
-      shape.lineTo(x, y + r); shape.quadraticCurveTo(x, y, x + r, y);
-      const g = new T.ExtrudeGeometry(shape, { depth: d - 2 * r, bevelEnabled: true, bevelThickness: r, bevelSize: r * 0.98, bevelSegments: seg || 3, curveSegments: seg || 3 });
+      const x = -iw / 2, y = -ih / 2;
+      shape.moveTo(x + cr, y);
+      shape.lineTo(x + iw - cr, y); shape.quadraticCurveTo(x + iw, y, x + iw, y + cr);
+      shape.lineTo(x + iw, y + ih - cr); shape.quadraticCurveTo(x + iw, y + ih, x + iw - cr, y + ih);
+      shape.lineTo(x + cr, y + ih); shape.quadraticCurveTo(x, y + ih, x, y + ih - cr);
+      shape.lineTo(x, y + cr); shape.quadraticCurveTo(x, y, x + cr, y);
+      const g = new T.ExtrudeGeometry(shape, { depth: Math.max(0.0001, d - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r, bevelSegments: seg || 3, curveSegments: 4 });
       g.translate(0, 0, -(d - 2 * r) / 2);
       g.computeVertexNormals();
       return g;

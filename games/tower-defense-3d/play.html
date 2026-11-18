@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script src="/assets/js/boot.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tower Defense 3D · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -51,7 +51,7 @@
         <p class="tp-hint"><kbd>U</kbd> verbessern · <kbd>V</kbd> verkaufen · <kbd>Esc</kbd> schließen</p>
     </aside>
 
-    <div class="hint" id="hint">Klick: bauen / Turm wählen · Ziehen: Kamera drehen · Mausrad: Zoom · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Turmtyp · <kbd>T</kbd> Tempo</div>
+    <div class="hint kbd-hint" id="hint">Klick: bauen / Turm wählen · Ziehen: Kamera drehen · Mausrad: Zoom · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Turmtyp · <kbd>T</kbd> Tempo</div>
 
     <!-- Overlays -->
     <div class="gh-overlay" id="startOverlay">
@@ -64,6 +64,11 @@
                 <div><span class="tp-dot" style="background:#6366f1"></span><b>Sniper</b><small>weit, hoher Schaden</small></div>
                 <div><span class="tp-dot" style="background:#38bdf8"></span><b>Frost</b><small>verlangsamt Gegner</small></div>
             </div>
+            <p class="gh-label" style="margin:0 0 6px">Karte</p>
+            <div class="gh-choice" id="mapChoice"></div>
+            <p class="gh-label" style="margin:0 0 6px">Schwierigkeit</p>
+            <div class="gh-choice" id="diffChoice"></div>
+            <p class="gh-label" id="bestInfo" style="margin:0 0 14px"></p>
             <button class="gh-btn gh-btn-white" id="btnStart" style="height:46px;padding:0 34px">Spiel starten</button>
         </div>
     </div>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Jump'n Run 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .menu-card { width: min(420px, 92vw); }
+        .gh-levels { grid-template-columns: repeat(6, 1fr); }
+        .hearts { display: flex; gap: 4px; color: var(--gh-neg); font-size: 16px; }
+        body.in-menu .gh-pad { display: none; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="in-menu">
+    <div id="scene" class="gh-scene"></div>
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <button class="gh-btn gh-btn-sm" id="btnMenu">Menü</button>
+            <div class="gh-hud-stat"><span class="gh-label">Level</span><b id="level">1</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Leben</span><b class="hearts" id="lives">♥♥♥</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Münzen</span><b id="coins">0</b></div>
+        </div>
+    </div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card menu-card">
+            <span class="gh-label">Plattformer · 3D</span>
+            <h2 id="ovTitle">Jump'n Run 3D</h2>
+            <p id="ovText">12 Level – springe Gegnern auf den Kopf und erreiche die Flagge.</p>
+            <div class="gh-levels" id="levelGrid"></div>
+            <button class="gh-btn gh-btn-white" id="btnNext" hidden>Weiter</button>
+        </div>
+    </div>
+
+    <div class="gh-hint3d"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> laufen · <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Leertaste</kbd> springen</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Welt wird gebaut …</span></div></div>
+
+    <script src="/assets/js/touch.js"></script>
+    <script src="/assets/js/gh3d.js"></script>
+    <script type="module" src="/games/jumpnrun-3d/game.js"></script>
+</body>
+</html>

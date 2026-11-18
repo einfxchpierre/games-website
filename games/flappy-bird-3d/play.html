@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Flappy Bird 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .score { position: fixed; top: calc(70px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 15; font-size: 72px; font-weight: 800; letter-spacing: -0.05em; text-shadow: 0 0 40px var(--gh-accent-glow); pointer-events: none; font-variant-numeric: tabular-nums; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="gh-hud-stat"><span class="gh-label">Modus</span><b id="modeLabel">Normal</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Bestwert</span><b id="best">0</b></div>
+        </div>
+    </div>
+    <div class="score" id="score">0</div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card">
+            <span class="gh-label">Geschick · 3D</span>
+            <h2 id="ovTitle">Flappy Bird 3D</h2>
+            <p id="ovText">Wähle eine Schwierigkeit.</p>
+            <div class="gh-choice" id="modes">
+                <button class="gh-btn" data-mode="easy">Leicht</button>
+                <button class="gh-btn" data-mode="normal">Normal</button>
+                <button class="gh-btn" data-mode="hard">Schwer</button>
+            </div>
+            <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+        </div>
+    </div>
+
+    <div class="gh-hint3d"><kbd>Leertaste</kbd>, Klick oder Tippen zum Fliegen</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Nachtflug wird vorbereitet …</span></div></div>
+
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/flappy-bird-3d/game.js"></script>
+</body>
+</html>

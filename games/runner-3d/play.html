@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Neon Runner 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .score { position: fixed; top: calc(70px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 15; text-align: center; pointer-events: none; }
+        .score b { display: block; font-size: 60px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; text-shadow: 0 0 30px var(--gh-accent-glow); font-variant-numeric: tabular-nums; }
+        .zone { position: fixed; top: 34%; left: 50%; transform: translate(-50%, -50%); z-index: 15; font-size: 36px; font-weight: 800; pointer-events: none; opacity: 0; transition: opacity .4s; text-shadow: 0 0 24px currentColor; white-space: nowrap; }
+        .zone.show { opacity: 1; }
+        .power { position: fixed; bottom: calc(26px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 15; width: min(360px, 60vw); text-align: center; font-size: 12.5px; font-weight: 600; display: none; }
+        .power .bar { height: 6px; margin-top: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
+        .power .bar span { display: block; height: 100%; border-radius: 3px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="gh-hud-stat"><span class="gh-label">Münzen</span><b id="coins">0</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Zone</span><b id="zoneNo">1</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Bestwert</span><b id="best">0</b></div>
+        </div>
+    </div>
+    <div class="score"><b id="score">0</b></div>
+    <div class="zone" id="zone"></div>
+    <div class="power" id="power"><span id="powerName"></span><div class="bar"><span id="powerBar"></span></div></div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card">
+            <span class="gh-label">Geschick · 3D</span>
+            <h2 id="ovTitle">Neon Runner 3D</h2>
+            <p id="ovText">Wechsle die Spur, springe über niedrige Barrieren und sammle Münzen.<br>Münzen und Upgrades teilst du mit der 2D-Version.</p>
+            <button class="gh-btn gh-btn-white" id="btnStart">Loslaufen</button>
+        </div>
+    </div>
+
+    <div class="gh-hint3d"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> Spur wechseln · <kbd>↑</kbd> / <kbd>Leertaste</kbd> springen · <kbd>P</kbd> Pause</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Tunnel wird beleuchtet …</span></div></div>
+
+    <script src="/assets/js/touch.js"></script>
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/runner-3d/game.js"></script>
+</body>
+</html>

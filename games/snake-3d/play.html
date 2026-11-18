@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Snake 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .menu-card { width: min(380px, 92vw); }
+        .wide { width: 100%; }
+        #after { display: flex; gap: 8px; justify-content: center; }
+        #after[hidden], #menu[hidden] { display: none; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="gh-hud-stat"><span class="gh-label" id="levelLabel">Modus</span><b id="levelName">–</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Äpfel</span><b id="score">0</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Bestwert</span><b id="best">0</b></div>
+        </div>
+    </div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card menu-card">
+            <span class="gh-label">Arcade · 3D</span>
+            <h2 id="ovTitle">Snake 3D</h2>
+            <p id="ovText">Wähle Klassik oder ein Level.</p>
+            <div id="menu">
+                <button class="gh-btn gh-btn-white wide" id="btnClassic">Klassik (endlos)</button>
+                <p class="gh-label" style="margin:16px 0 8px">Level</p>
+                <div class="gh-levels" id="levelGrid"></div>
+            </div>
+            <div id="after" hidden>
+                <button class="gh-btn" id="btnMenu">Menü</button>
+                <button class="gh-btn gh-btn-white" id="btnNext">Weiter</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="gh-hint3d"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> / <kbd>WASD</kbd> steuern · <kbd>Leertaste</kbd> Pause · Rechte Maustaste: Kamera drehen</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Spielfeld wird aufgebaut …</span></div></div>
+
+    <script src="/assets/js/touch.js"></script>
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/snake/levels.js"></script>
+    <script src="/games/snake-3d/game.js"></script>
+</body>
+</html>

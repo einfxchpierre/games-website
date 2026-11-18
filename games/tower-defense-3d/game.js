@@ -9,7 +9,20 @@
   /* ---------- Spielfeld ---------- */
   const COLS = 22, ROWS = 13;
   // Wegpunkte in Feldkoordinaten (Spalte, Zeile); Start außerhalb links
-  const WAYPOINTS = [[-2, 6], [4, 6], [4, 2], [10, 2], [10, 10], [16, 10], [16, 4], [21, 4]];
+  // Karten (Wegpunkte in Feldkoordinaten, Start außerhalb links) und Schwierigkeitsstufen
+  const MAPS = [
+    { name: "Serpentine",     pts: [[-2, 6], [4, 6], [4, 2], [10, 2], [10, 10], [16, 10], [16, 4], [21, 4]] },
+    { name: "Doppelschleife", pts: [[-2, 2], [6, 2], [6, 10], [12, 10], [12, 2], [18, 2], [18, 10], [21, 10]] },
+    { name: "Spirale",        pts: [[-2, 11], [19, 11], [19, 1], [2, 1], [2, 8], [15, 8], [15, 4], [8, 4]] }
+  ];
+  const DIFFS = {
+    easy:   { name: "Leicht", hp: 0.75, gold: 280, lives: 25 },
+    normal: { name: "Normal", hp: 1,    gold: 220, lives: 20 },
+    hard:   { name: "Schwer", hp: 1.35, gold: 180, lives: 12 }
+  };
+  const MAP_INDEX = Math.min(MAPS.length - 1, +(localStorage.getItem("td3d_map") || 0));
+  const DIFF = DIFFS[localStorage.getItem("td3d_diff")] ? localStorage.getItem("td3d_diff") : "normal";
+  const WAYPOINTS = MAPS[MAP_INDEX].pts;
 
   const TOWERS = {
     basic:  { name: "Turm",   cost: 50,  range: 3.2, rate: 0.55, dmg: 22, color: 0xe254d6, css: "#e254d6", desc: "schnell, solide" },
@@ -26,7 +39,7 @@
 
   /* ---------- Zustand ---------- */
   const S = {
-    gold: 220, lives: 20, wave: 0, speed: 1, paused: false, over: false, started: false,
+    gold: DIFFS[DIFF].gold, lives: DIFFS[DIFF].lives, wave: 0, speed: 1, paused: false, over: false, started: false,
     phase: "build", countdown: 0, spawnQueue: [], spawnTimer: 0,
     build: "basic", selected: null, kills: 0
   };
@@ -100,6 +113,7 @@
     createHoverMarker();
 
     addEventListener("resize", onResize);
+    fitCamera();
     setupInput();
     setupUI();
     updateHUD();
@@ -467,7 +481,7 @@
 
   function spawnEnemy(type) {
     const d = ENEMIES[type];
-    const hp = Math.round((55 + S.wave * 24 + Math.pow(S.wave, 1.6) * 4) * d.hp);
+    const hp = Math.round((55 + S.wave * 24 + Math.pow(S.wave, 1.6) * 4) * d.hp * DIFFS[DIFF].hp);
     const e = { type, hp, maxHp: hp, dist: 0, speed: d.speed, slowUntil: 0, slowFactor: 1, mesh: enemyMesh(type), pos: new THREE.Vector3(), alive: true, bob: Math.random() * 6 };
     pointAt(0, e.pos);
     e.mesh.position.copy(e.pos);
@@ -865,6 +879,7 @@
     $("btnSell").onclick = () => sellTower(S.selected);
     $("tpClose").onclick = () => selectTower(null);
     setBuild("basic");
+    buildChoices();
   }
 
   function setBuild(type) {
@@ -946,6 +961,14 @@
     updateHUD();
   }
 
+  function buildChoices() {
+    $("mapChoice").innerHTML = MAPS.map((m, i) => '<button class="gh-btn' + (i === MAP_INDEX ? " gh-btn-white" : "") + '" data-map="' + i + '">' + m.name + "</button>").join("");
+    $("diffChoice").innerHTML = Object.keys(DIFFS).map((k) => '<button class="gh-btn' + (k === DIFF ? " gh-btn-white" : "") + '" data-diff="' + k + '">' + DIFFS[k].name + "</button>").join("");
+    $("bestInfo").textContent = "Rekord auf dieser Karte: " + best() + " Wellen";
+    $("mapChoice").onclick = (e) => { const b = e.target.closest("[data-map]"); if (b && +b.dataset.map !== MAP_INDEX) { localStorage.setItem("td3d_map", b.dataset.map); location.reload(); } };
+    $("diffChoice").onclick = (e) => { const b = e.target.closest("[data-diff]"); if (b && b.dataset.diff !== DIFF) { localStorage.setItem("td3d_diff", b.dataset.diff); location.reload(); } };
+  }
+
   function startGame() {
     if (S.started) return;
     S.started = true;
@@ -968,23 +991,24 @@
     $("btnSpeed").classList.toggle("on", S.speed === 2);
   }
 
-  function best() {
-    const all = JSON.parse(localStorage.getItem("myWebGames") || "{}");
-    return (all["tower-defense-3d"] && all["tower-defense-3d"].highscore) || 0;
+  // Bestwerte pro Karte & Stufe (GHStats, im Browser gespeichert)
+  const bestKey = (m, d) => "best_" + m + "_" + d;
+  function best(m, d) {
+    return (window.GHStats && GHStats.progress("tower-defense-3d", bestKey(m == null ? MAP_INDEX : m, d || DIFF))) || 0;
   }
   function saveBest() {
-    const all = JSON.parse(localStorage.getItem("myWebGames") || "{}");
     const done = S.phase === "build" ? S.wave : S.wave - 1;
-    if (done > best()) { all["tower-defense-3d"] = { highscore: done }; localStorage.setItem("myWebGames", JSON.stringify(all)); }
+    if (window.GHStats && done > best()) GHStats.progress("tower-defense-3d", bestKey(MAP_INDEX, DIFF), done);
   }
 
   function gameOver() {
     S.over = true;
     saveBest();
+    if (window.GHStats) GHStats.record("tower-defense-3d", Math.max(0, S.wave - 1));
     selectTower(null);
     burst(crystal.position.clone(), 0xe254d6, 80, 6);
     crystal.visible = false;
-    $("overText").textContent = "Du hast " + Math.max(0, S.wave - 1) + " Wellen überlebt und " + S.kills + " Gegner besiegt. Rekord: " + best() + " Wellen.";
+    $("overText").textContent = "Du hast " + Math.max(0, S.wave - 1) + " Wellen überlebt und " + S.kills + " Gegner besiegt. Rekord (" + MAPS[MAP_INDEX].name + ", " + DIFFS[DIFF].name + "): " + best() + " Wellen.";
     setTimeout(() => ($("overOverlay").hidden = false), 900);
   }
 
@@ -995,6 +1019,16 @@
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    fitCamera();
+  }
+  // Hochformat (Handy): Kamera so weit zurück, dass das ganze Feld in die Breite passt
+  function fitCamera() {
+    const aspect = innerWidth / innerHeight;
+    if (aspect >= 1.2) { camera.position.set(0, 19.5, 15); return; }
+    const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect);
+    const dist = (COLS / 2 + 1) / Math.tan(hfov / 2);
+    camera.position.set(0, dist * 0.92, dist * 0.38);
+    controls.maxDistance = dist * 1.6;
   }
 
   function animate() {

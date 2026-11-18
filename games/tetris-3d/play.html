@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tetris 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .side { position: fixed; z-index: 20; display: flex; flex-direction: column; gap: 14px; }
+        .side.left { left: max(20px, calc(50vw - 420px)); top: 50%; transform: translateY(-50%); }
+        .side.right { right: max(20px, calc(50vw - 420px)); top: 50%; transform: translateY(-50%); align-items: flex-end; text-align: right; }
+        .big { font-size: 44px; font-weight: 800; letter-spacing: -0.05em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+        .menu-card { width: min(380px, 92vw); }
+        .top-back { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 25; }
+        @media (max-width: 820px) {
+            .side.left { top: auto; bottom: auto; transform: none; top: calc(54px + env(safe-area-inset-top)); left: 12px; flex-direction: row; gap: 14px; }
+            .side.right { top: calc(54px + env(safe-area-inset-top)); right: 12px; transform: none; gap: 4px; }
+            .big { font-size: 26px; }
+            .side .gh-value { font-size: 17px; }
+            .side.right .hide-m { display: none; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <a href="/" class="gh-back top-back">← Bibliothek</a>
+
+    <div class="side left">
+        <div><span class="gh-label" id="modeName">Marathon</span><div class="big" id="score">0</div></div>
+        <div><span class="gh-label">Reihen</span><div class="gh-value" id="lines">0</div></div>
+        <div><span class="gh-label">Level</span><div class="gh-value" id="level">1</div></div>
+    </div>
+    <div class="side right">
+        <div><span class="gh-label" id="timeLabel">Zeit</span><div class="gh-value" id="time">0:00</div></div>
+        <div><span class="gh-label">Bestwert</span><div class="gh-value" id="best">0</div></div>
+    </div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card menu-card">
+            <span class="gh-label">Puzzle · 3D</span>
+            <h2 id="ovTitle">Tetris 3D</h2>
+            <p id="ovText">Wähle einen Modus.</p>
+            <div class="gh-choice" id="modes"></div>
+            <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+        </div>
+    </div>
+
+    <div class="gh-hint3d"><kbd>←</kbd><kbd>→</kbd> bewegen · <kbd>↑</kbd> drehen · <kbd>↓</kbd> schneller · <kbd>Leertaste</kbd> fallen lassen · <kbd>P</kbd> Pause · Rechte Maustaste: Kamera</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Schacht wird aufgebaut …</span></div></div>
+
+    <script src="/assets/js/touch.js"></script>
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/tetris/core.js"></script>
+    <script src="/games/tetris-3d/game.js"></script>
+</body>
+</html>

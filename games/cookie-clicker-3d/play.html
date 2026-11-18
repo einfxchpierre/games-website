@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cookie Clicker 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <link rel="stylesheet" href="/games/cookie-clicker/style.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .counter { position: fixed; top: calc(70px + env(safe-area-inset-top)); left: 0; right: 420px; z-index: 15; text-align: center; pointer-events: none; }
+        .counter #cookie-count { margin: 4px 0 0; font-size: clamp(2.4rem, 4.6vw, 4rem); text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+        .counter #cps-display { margin: 6px 0 0; }
+        .counter .sub-stats { margin-top: 8px; }
+        /* Unsichtbare Klickfläche über dem 3D-Keks (die 2D-Logik hört darauf) */
+        #cookie-container { position: fixed; z-index: 14; width: 10px; height: 10px; border-radius: 50%; cursor: pointer; transform: none !important; }
+        #cookie-container:hover, #cookie-container:active { transform: none !important; }
+        .shop-section { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: none; z-index: 20; background: rgba(10, 4, 16, 0.78); backdrop-filter: blur(12px); padding-top: calc(28px + env(safe-area-inset-top)); }
+        .top-back { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 14px; z-index: 25; }
+        @media (max-width: 820px) {
+            .counter { right: 0; top: calc(56px + env(safe-area-inset-top)); }
+            .counter #cookie-count { font-size: 2.2rem; }
+            .shop-section { top: auto; left: 0; width: auto; height: 42dvh; border-left: 0; border-top: 1px solid var(--gh-line); border-radius: 20px 20px 0 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <a href="/" class="gh-back top-back">← Bibliothek</a>
+
+    <div class="counter">
+        <span class="gh-label">Cookies · Spielstand geteilt mit 2D</span>
+        <h1 id="cookie-count">0</h1>
+        <p id="cps-display">0 pro Sekunde</p>
+        <p class="sub-stats"><span id="click-value">+1</span> pro Klick · <span id="total">0</span> insgesamt</p>
+    </div>
+    <div id="cookie-container" role="button" aria-label="Cookie anklicken"></div>
+
+    <div class="shop-section">
+        <div class="tabs">
+            <button class="tab active" data-tab="buildings">Gebäude</button>
+            <button class="tab" data-tab="upgrades">Upgrades <span class="badge" id="upBadge"></span></button>
+            <button class="tab" data-tab="ach">Erfolge <span class="count" id="achCount"></span></button>
+        </div>
+        <div id="shop-items"></div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Ofen heizt vor …</span></div></div>
+
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/cookie-clicker/core.js"></script>
+    <script src="/games/cookie-clicker/game.js"></script>
+    <script src="/games/cookie-clicker-3d/game.js"></script>
+</body>
+</html>

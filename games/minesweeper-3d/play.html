@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Minesweeper 3D · GAMEHUB</title>
+    <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/game.css">
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+        .tool { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 6px; padding: 6px; border: 1px solid var(--gh-line-strong); border-radius: 999px; background: rgba(10,4,16,.75); backdrop-filter: blur(10px); }
+        .tool .gh-btn { height: 36px; }
+        .tool .gh-btn.on { background: var(--gh-accent); border-color: var(--gh-accent); }
+        html:not(.gh-touch) .tool { bottom: 44px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="scene" class="gh-scene"></div>
+    <div class="gh-hud">
+        <div class="gh-hud-group">
+            <a href="/" class="gh-back">← Bibliothek</a>
+            <div class="gh-hud-stat"><span class="gh-label">Stufe</span><b id="diffName">Anfänger</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Minen übrig</span><b id="mines">10</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Zeit</span><b id="time">0 s</b></div>
+            <div class="gh-hud-stat"><span class="gh-label">Bestzeit</span><b id="best">–</b></div>
+        </div>
+        <button class="gh-btn gh-btn-sm" id="btnMenu">Neues Spiel</button>
+    </div>
+    <div class="tool">
+        <button class="gh-btn on" id="toolDig">Aufdecken</button>
+        <button class="gh-btn" id="toolFlag">Flagge</button>
+    </div>
+
+    <div class="gh-overlay fixed" id="overlay">
+        <div class="gh-overlay-card">
+            <span class="gh-label">Puzzle · 3D</span>
+            <h2 id="ovTitle">Minesweeper 3D</h2>
+            <p id="ovText">Wähle eine Schwierigkeit.</p>
+            <div class="gh-choice" id="diffs"></div>
+            <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+        </div>
+    </div>
+
+    <div class="gh-hint3d">Klick: aufdecken · Rechtsklick: Flagge · Rechte Maustaste ziehen: Kamera drehen · Mausrad: Zoom</div>
+    <div class="gh-loading" id="loading"><div><div class="gh-spinner"></div><span class="gh-label">Minenfeld wird ausgelegt …</span></div></div>
+
+    <script src="/assets/js/gh3d.js"></script>
+    <script src="/games/minesweeper-3d/game.js"></script>
+</body>
+</html>
