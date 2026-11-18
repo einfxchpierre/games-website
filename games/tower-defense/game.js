@@ -32,15 +32,24 @@ const TOWERS = {
     sniper: { cost: 100, range: 350, fireRate: 80, damage: 50, c1: '#38bdf8', c2: '#6366f1' }
 };
 
-// Der Pfad für die Gegner
-const path = [
-    { x: -50, y: H / 2 },
-    { x: W * 0.2, y: H / 2 },
-    { x: W * 0.2, y: H * 0.25 },
-    { x: W * 0.6, y: H * 0.25 },
-    { x: W * 0.6, y: H * 0.8 },
-    { x: W + 50, y: H * 0.8 }
+// Karten (relative Koordinaten) und Schwierigkeitsstufen
+const MAPS = [
+    { name: "Serpentine", pts: [[-0.05, 0.5], [0.2, 0.5], [0.2, 0.28], [0.6, 0.28], [0.6, 0.8], [1.05, 0.8]] },
+    { name: "Zickzack",   pts: [[-0.05, 0.32], [0.25, 0.32], [0.25, 0.78], [0.5, 0.78], [0.5, 0.32], [0.75, 0.32], [0.75, 0.78], [1.05, 0.78]] },
+    { name: "Spirale",    pts: [[-0.05, 0.86], [0.86, 0.86], [0.86, 0.28], [0.16, 0.28], [0.16, 0.66], [0.66, 0.66], [0.66, 0.47], [0.42, 0.47]] }
 ];
+const DIFFS = {
+    easy:   { name: "Leicht", hp: 0.75, gold: 260, lives: 25, reward: 1.2 },
+    normal: { name: "Normal", hp: 1,    gold: 200, lives: 20, reward: 1 },
+    hard:   { name: "Schwer", hp: 1.35, gold: 160, lives: 12, reward: 0.9 }
+};
+let mapIndex = +(localStorage.getItem('td_map') || 0), diff = localStorage.getItem('td_diff') || 'normal';
+let path = [];
+function buildPath() {
+    const top = document.getElementById('game-ui').getBoundingClientRect().bottom + 30;
+    const usable = H - top - 30;
+    path = MAPS[mapIndex].pts.map(([fx, fy]) => ({ x: fx * W, y: top + fy * usable }));
+}
 
 function distToSegment(p, a, b) {
     const dx = b.x - a.x, dy = b.y - a.y;
@@ -48,7 +57,7 @@ function distToSegment(p, a, b) {
     return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 function canPlace(x, y) {
-    if (y < 90) return false; // Bereich der Leiste
+    if (y < document.getElementById('game-ui').getBoundingClientRect().bottom + 6) return false; // Bereich der Leiste
     for (let i = 0; i < path.length - 1; i++) if (distToSegment({ x, y }, path[i], path[i + 1]) < 42) return false;
     return !towers.some((t) => Math.hypot(t.x - x, t.y - y) < 46);
 }
@@ -228,7 +237,7 @@ function spawnWave() {
         const count = wave * 5;
         for (let i = 0; i < count; i++) {
             setTimeout(() => {
-                if (!isGameOver) enemies.push(new Enemy(80 + wave * 30));
+                if (!isGameOver) enemies.push(new Enemy(Math.round((80 + wave * 30) * DIFFS[diff].hp)));
                 if (i === count - 1) spawning = false;
             }, i * 700);
         }
@@ -290,7 +299,7 @@ function loop() {
         const e = enemies[i];
         e.update(); e.draw();
         if (e.hp <= 0) {
-            if (!e.escaped) { money += 15; burst(e.x, e.y, '#ff5470', 14); }
+            if (!e.escaped) { money += Math.round(15 * DIFFS[diff].reward); burst(e.x, e.y, '#ff5470', 14); }
             enemies.splice(i, 1);
             updateUI();
         }
@@ -321,6 +330,11 @@ function loop() {
 function finish() {
     isGameOver = true;
     updateUI();
+    if (window.GHStats) {
+        GHStats.record('tower-defense', Math.max(0, wave - 1));
+        const k = 'best_' + mapIndex + '_' + diff, prev = GHStats.progress('tower-defense', k) || 0;
+        if (wave - 1 > prev) GHStats.progress('tower-defense', k, wave - 1);
+    }
     const saved = JSON.parse(localStorage.getItem('myWebGames')) || {};
     let high = saved['tower-defense'] ? saved['tower-defense'].highscore : 0;
     if (wave - 1 > high) high = wave - 1;
@@ -334,14 +348,48 @@ function finish() {
 }
 
 function restartGame() {
-    money = 200; lives = 20; wave = 0;
-    enemies = []; towers = []; projectiles = []; particles = [];
-    isGameOver = false; spawning = false;
     document.getElementById('game-over-screen').classList.add('hidden');
+    showStart();
+}
+
+function startGame() {
+    const d = DIFFS[diff];
+    money = d.gold; lives = d.lives; wave = 0;
+    enemies = []; towers = []; projectiles = []; particles = [];
+    isGameOver = false; spawning = false; started = true;
+    buildPath();
+    document.getElementById('start-screen').classList.add('hidden');
     updateUI();
     loop();
 }
 
+/* ---------- Startdialog: Karte & Schwierigkeit ---------- */
+let started = false;
+function showStart() {
+    started = false;
+    isGameOver = true;
+    const best = (k) => (window.GHStats && GHStats.progress('tower-defense', 'best_' + k + '_' + diff)) || 0;
+    document.getElementById('maps').innerHTML = MAPS.map((m, i) =>
+        '<button class="map-btn' + (i === mapIndex ? ' on' : '') + '" data-map="' + i + '"><canvas width="120" height="70" data-preview="' + i + '"></canvas><b>' + m.name + '</b><small>Rekord: ' + best(i) + ' Wellen</small></button>').join('');
+    document.querySelectorAll('[data-preview]').forEach((c) => {
+        const g = c.getContext('2d'), pts = MAPS[+c.dataset.preview].pts;
+        g.fillStyle = '#0d0712'; g.fillRect(0, 0, 120, 70);
+        g.strokeStyle = '#e254d6'; g.lineWidth = 5; g.lineJoin = 'round'; g.lineCap = 'round';
+        g.beginPath(); pts.forEach(([x, y], k) => (k ? g.lineTo(x * 120, 6 + y * 58) : g.moveTo(x * 120, 6 + y * 58))); g.stroke();
+    });
+    document.querySelectorAll('[data-diff]').forEach((b) => b.classList.toggle('gh-btn-white', b.dataset.diff === diff));
+    document.getElementById('start-screen').classList.remove('hidden');
+    buildPath();
+    drawField();
+}
+document.getElementById('maps').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-map]'); if (!b) return;
+    mapIndex = +b.dataset.map; localStorage.setItem('td_map', mapIndex); showStart();
+});
+document.querySelectorAll('[data-diff]').forEach((b) => b.addEventListener('click', () => { diff = b.dataset.diff; localStorage.setItem('td_diff', diff); showStart(); }));
+document.getElementById('btnStartTD').addEventListener('click', startGame);
+addEventListener('resize', () => { W = innerWidth; H = innerHeight; setupCanvas(); if (!started) showStart(); });
+
 selectTower('basic');
 updateUI();
-loop();
+showStart();

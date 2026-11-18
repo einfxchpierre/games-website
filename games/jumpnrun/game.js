@@ -2,7 +2,7 @@ import { levels } from './level/levels.js';
 
 // Status-Variablen
 let currentLvlIndex = 0;
-let unlocked = parseInt(localStorage.getItem('jumper_unlocked')) || 1;
+let unlocked = Math.max(parseInt(localStorage.getItem('jumper_unlocked')) || 1, window.GHStats ? GHStats.unlocked('jumpnrun') : 1);
 let coins = 0;
 let playerLives = 3;
 let activeCheckpoint = null;
@@ -104,10 +104,21 @@ async function startLevel(index, isNewLevel = false) {
 
     menuContainer.classList.add('hidden');
     gameScreen.classList.remove('hidden');
+    document.body.classList.remove('in-menu');
     loop();
 }
 
-function loop() {
+// Physik mit festem Takt (60 Schritte/s) – gleich schnell auf 60-, 120- und 144-Hz-Bildschirmen
+let lastT = null, acc = 0;
+function loop(t) {
+    if (t === undefined) { lastT = null; acc = 0; animationId = requestAnimationFrame(loop); return; }
+    if (lastT === null) lastT = t;
+    acc += Math.min(100, t - lastT); lastT = t;
+    while (acc >= 1000 / 60) { acc -= 1000 / 60; if (!step()) return; }
+    animationId = requestAnimationFrame(loop);
+}
+
+function step() {
     // Input Handling
     if (keys['ArrowRight'] || keys['btn-right'] || keys['d']) vX = config.speed;
     else if (keys['ArrowLeft'] || keys['btn-left'] || keys['a']) vX = -config.speed;
@@ -123,7 +134,7 @@ function loop() {
         let b = blocks[i];
         if (pX < b.x + b.w && pX + 32 > b.x && pY < b.y + b.h && pY + 38 > b.y) {
             if (b.type === 'C') { coins++; updateUI(); b.el.remove(); blocks.splice(i, 1); continue; }
-            if (b.type === 'F') { win(); return; }
+            if (b.type === 'F') { win(); return false; }
             if (b.type === 'P') {
                 if (!activeCheckpoint || activeCheckpoint.x !== b.x) {
                     activeCheckpoint = { x: b.x, y: b.y }; b.el.classList.add('active');
@@ -148,7 +159,7 @@ function loop() {
         if (pX < e.x + 34 && pX + 32 > e.x && pY < e.y + 34 && pY + 38 > e.y) {
             if (vY > 0 && pY + 10 < e.y) { // Auf Kopf gesprungen
                 e.el.remove(); enemies.splice(i, 1); vY = config.jump / 1.5; 
-            } else { die(); return; }
+            } else { die(); return false; }
         }
     }
 
@@ -158,14 +169,14 @@ function loop() {
     }
     world.style.transform = `translateX(${-pX + window.innerWidth/2}px)`;
 
-    if (pY > 1500) { die(); return; }
-    animationId = requestAnimationFrame(loop);
+    if (pY > 1500) { die(); return false; }
+    return true;
 }
 
 function die() {
     cancelAnimationFrame(animationId);
     playerLives--;
-    if (playerLives <= 0) exitToMenu();
+    if (playerLives <= 0) { if (window.GHStats) GHStats.record('jumpnrun', currentLvlIndex); exitToMenu(); }
     else startLevel(currentLvlIndex, false);
 }
 
@@ -173,6 +184,11 @@ function win() {
     cancelAnimationFrame(animationId);
     unlocked = Math.max(unlocked, currentLvlIndex + 2);
     localStorage.setItem('jumper_unlocked', unlocked);
+    if (window.GHStats) {
+        GHStats.unlock('jumpnrun', currentLvlIndex + 2);
+        GHStats.setBest('jumpnrun', currentLvlIndex + 1);
+        if (currentLvlIndex + 1 >= levels.length) GHStats.record('jumpnrun', levels.length);
+    }
     if (currentLvlIndex + 1 < levels.length) startLevel(currentLvlIndex + 1, true);
     else document.getElementById('win-screen').classList.remove('hidden');
 }
@@ -190,6 +206,7 @@ window.exitToMenu = () => {
     cancelAnimationFrame(animationId);
     gameScreen.classList.add('hidden');
     menuContainer.classList.remove('hidden');
+    document.body.classList.add('in-menu');
     initMenu();
 };
 
@@ -197,10 +214,12 @@ window.exitToMenu = () => {
 const handler = (k, v) => keys[k] = v;
 window.onkeydown = (e) => handler(e.key, true);
 window.onkeyup = (e) => handler(e.key, false);
-['btn-left', 'btn-right', 'btn-jump'].forEach(id => {
-    const el = document.getElementById(id);
-    el.onpointerdown = (e) => { e.preventDefault(); handler(id, true); };
-    el.onpointerup = (e) => { e.preventDefault(); handler(id, false); };
-});
+// Touch-Steuerung (Handy/Tablet): erzeugt Tastendrücke
+if (window.GHTouch) {
+    GHTouch.dpad({ left: 'ArrowLeft', right: 'ArrowRight' }, { side: 'left' });
+    GHTouch.buttons([{ label: 'Sprung', key: ' ', big: true }], { side: 'right' });
+}
+window.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key.startsWith('Arrow')) e.preventDefault(); });
 
+document.body.classList.add('in-menu');
 initMenu();

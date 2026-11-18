@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Neon Runner · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -69,6 +69,11 @@
         .controls-hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--gh-text-3); font-size: 13px; pointer-events: none; }
 
         #crash { display: none; position: fixed; }
+        @media (max-width: 820px) {
+            .hud { top: calc(10px + env(safe-area-inset-top)); left: 10px; right: 10px; }
+            .center { top: calc(64px + env(safe-area-inset-top)); }
+            #score { font-size: 44px; }
+        }
     </style>
 </head>
 <body>
@@ -111,7 +116,7 @@
 
     <div id="powerLabel"></div>
     <div id="powerTimer"><div id="powerBar"></div></div>
-    <div class="controls-hint"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> oder Klick links/rechts · <kbd>Esc</kbd> Shop</div>
+    <div class="controls-hint kbd-hint"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> oder Klick links/rechts · <kbd>Esc</kbd> Shop</div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -126,7 +131,7 @@
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             lanes = [W * 0.5 - LANE_GAP, W * 0.5, W * 0.5 + LANE_GAP];
         }
-        const LANE_GAP = Math.min(220, innerWidth * 0.18);
+        const LANE_GAP = Math.min(220, innerWidth * (innerWidth < 700 ? 0.28 : 0.18));
         let lanes = [];
         setup();
         addEventListener('resize', setup);
@@ -147,7 +152,7 @@
         let activePower = null, powerTimeLeft = 0, powerMax = 0;
 
         function reset() {
-            score = 0; speed = 7; currentLane = 1; playerX = lanes[1];
+            score = 0; speed = 7; currentLane = 1; playerX = lanes[1]; zone = 0; zoneBanner = 90;
             gameActive = true; entities = []; particles = [];
             activePower = null;
             document.getElementById('powerTimer').style.display = 'none';
@@ -205,8 +210,8 @@
         }
 
         /* ---------- Steuerung ---------- */
-        addEventListener('mousedown', e => {
-            if (isPaused || !gameActive || e.target.closest('button, a, #pauseMenu')) return;
+        addEventListener('pointerdown', e => {
+            if (isPaused || !gameActive || e.target.closest('button, a, #pauseMenu, .gh-overlay')) return;
             movePlayer(e.clientX < W / 2 ? -1 : 1);
         });
         addEventListener('keydown', e => {
@@ -237,6 +242,27 @@
             ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
         }
 
+        // Zonen: alle 25 Punkte neue Farbe + Ansage (Tempo steigt ohnehin)
+        const ZONES = [['Magenta', '#e254d6'], ['Eis', '#38bdf8'], ['Mint', '#3ddc97'], ['Gold', '#ffc857'], ['Glut', '#ff5470'], ['Violett', '#9b5cf6']];
+        let zone = 0, zoneBanner = 0;
+        const zoneColor = () => ZONES[zone % ZONES.length][1];
+        function checkZone() {
+            const z = Math.floor(score / 25);
+            if (z !== zone) { zone = z; zoneBanner = 120; }
+        }
+        function drawZoneBanner() {
+            if (zoneBanner <= 0) return;
+            zoneBanner--;
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, zoneBanner / 30);
+            ctx.fillStyle = zoneColor();
+            ctx.font = '800 34px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = zoneColor(); ctx.shadowBlur = 20;
+            ctx.fillText('Zone ' + (zone + 1) + ' · ' + ZONES[zone % ZONES.length][0], W / 2, H * 0.32);
+            ctx.restore();
+        }
+
         function drawTrack() {
             const g = ctx.createLinearGradient(0, 0, 0, H);
             g.addColorStop(0, '#06020a'); g.addColorStop(0.7, '#14061d'); g.addColorStop(1, '#3a0d41');
@@ -247,10 +273,10 @@
             ctx.fillStyle = 'rgba(27,16,35,0.65)';
             ctx.fillRect(left, 0, right - left, H);
             // Spurlinien
-            ctx.strokeStyle = 'rgba(226,84,214,0.5)'; ctx.lineWidth = 2;
-            ctx.shadowColor = '#e254d6'; ctx.shadowBlur = 12;
+            ctx.strokeStyle = zoneColor(); ctx.globalAlpha = 0.6; ctx.lineWidth = 2;
+            ctx.shadowColor = zoneColor(); ctx.shadowBlur = 12;
             [left, right].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); });
-            ctx.shadowBlur = 0;
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
             ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.setLineDash([30, 30]); ctx.lineDashOffset = -t * speed;
             [lanes[0] + LANE_GAP / 2, lanes[1] + LANE_GAP / 2].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); });
             ctx.setLineDash([]);
@@ -328,7 +354,7 @@
                     }
                 }
                 if (e.y > H) {
-                    if (e.type === 'obs') { score += (activePower === 'mult' ? 2 : 1); speed += 0.02; document.getElementById('score').innerText = score; }
+                    if (e.type === 'obs') { score += (activePower === 'mult' ? 2 : 1); speed += 0.02; document.getElementById('score').innerText = score; checkZone(); }
                     entities.splice(i, 1);
                 }
             }
@@ -339,6 +365,7 @@
                 if (p.l <= 0) particles.splice(i, 1);
             }
             ctx.globalAlpha = 1;
+            drawZoneBanner();
             requestAnimationFrame(update);
         }
 
@@ -346,8 +373,9 @@
             gameActive = false;
             if (score > highscore) highscore = score;
             save();
+            if (window.GHStats) GHStats.record('runner', score);
             document.getElementById('highscore').innerText = 'Bestwert: ' + highscore;
-            document.getElementById('crashText').innerText = score + ' Punkte · Bestwert ' + highscore;
+            document.getElementById('crashText').innerText = score + ' Punkte · Zone ' + (zone + 1) + ' · Bestwert ' + highscore;
             document.getElementById('crash').style.display = 'grid';
         }
         function restart() {

@@ -135,3 +135,98 @@ kbd {
   font: 500 11px var(--gh-font);
   color: var(--gh-text-2);
 }
+
+/* ==========================================================================
+   Touch-Steuerung (Handy/Tablet) – erzeugt von /assets/js/touch.js
+   ========================================================================== */
+.gh-pad {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.gh-pad-left { left: calc(16px + env(safe-area-inset-left)); }
+.gh-pad-right { right: calc(16px + env(safe-area-inset-right)); align-items: flex-end; }
+.gh-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 58px);
+  grid-template-rows: repeat(3, 58px);
+  gap: 6px;
+}
+.gh-dpad .d-up { grid-column: 2; grid-row: 1; }
+.gh-dpad .d-left { grid-column: 1; grid-row: 2; }
+.gh-dpad .d-right { grid-column: 3; grid-row: 2; }
+.gh-dpad .d-down { grid-column: 2; grid-row: 3; }
+.gh-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.gh-pad-btn {
+  min-width: 58px;
+  height: 58px;
+  padding: 0 16px;
+  border: 1px solid var(--gh-line-strong);
+  border-radius: 18px;
+  background: rgba(27, 16, 35, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--gh-text);
+  font: 700 17px var(--gh-font);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .08s, transform .08s;
+}
+.gh-pad-btn.big { min-width: 84px; height: 84px; border-radius: 50%; font-size: 15px; }
+.gh-pad-btn.on { background: var(--gh-accent); border-color: var(--gh-accent); transform: scale(0.94); }
+
+html.gh-touch, html.gh-touch body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+
+/* ==========================================================================
+   Bausteine für 3D-Spiele: Vollbild-Szene, HUD-Leiste, Ladeanzeige
+   ========================================================================== */
+.gh-scene { position: fixed; inset: 0; }
+.gh-hud {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top)); left: 12px; right: 12px;
+  z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  pointer-events: none;
+}
+.gh-hud > * { pointer-events: auto; }
+.gh-hud-group {
+  display: flex; align-items: center; gap: 18px;
+  padding: 8px 16px;
+  border: 1px solid var(--gh-line-strong); border-radius: 16px;
+  background: rgba(10, 4, 16, 0.7);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.gh-hud-stat { display: flex; flex-direction: column; line-height: 1.2; }
+.gh-hud-stat b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.gh-hint3d {
+  position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 15;
+  color: var(--gh-text-3); font-size: 12.5px; white-space: nowrap; pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .8);
+}
+html.gh-touch .gh-hint3d { display: none; }
+.gh-loading { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: var(--gh-bg); text-align: center; transition: opacity .5s; }
+.gh-spinner { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid var(--gh-chip); border-top-color: var(--gh-accent); animation: gh-spin .8s linear infinite; }
+@keyframes gh-spin { to { transform: rotate(360deg); } }
+.gh-overlay.fixed { position: fixed; }
+.gh-overlay[hidden] { display: none !important; }
+.gh-choice { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: -4px 0 16px; }
+.gh-choice .gh-btn { height: 34px; padding: 0 14px; font-size: 13px; }
+.gh-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 16px; }
+.gh-levels button { height: 42px; border: 1px solid var(--gh-line-strong); border-radius: 12px; background: var(--gh-card-2); color: var(--gh-text); font: 700 15px var(--gh-font); cursor: pointer; }
+.gh-levels button:hover:not(:disabled) { border-color: var(--gh-accent); background: var(--gh-accent-soft); }
+.gh-levels button:disabled { opacity: .35; cursor: not-allowed; }
+.gh-levels button.done { color: var(--gh-pos); }
+@media (max-width: 820px) {
+  .gh-hud { flex-wrap: wrap; top: calc(8px + env(safe-area-inset-top)); left: 8px; right: 8px; gap: 8px; }
+  .gh-hud-group { gap: 12px; padding: 6px 12px; }
+  .gh-hud-stat b { font-size: 15px; }
+}
+
+/* Tastatur-Hinweise auf Touch-Geräten ausblenden */
+html.gh-touch .kbd-hint, html.gh-touch .kbd-only { display: none !important; }

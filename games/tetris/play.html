@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
+    <script src="/assets/js/boot.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tetris · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
@@ -13,18 +13,20 @@
     <div id="game-container">
         <aside class="panel left">
             <a href="/" class="gh-back back-link">← Bibliothek</a>
-            <div class="stat"><span class="gh-label">Punkte</span><div class="big" id="score">0</div></div>
+            <div class="stat"><span class="gh-label" id="modeName">Marathon</span><div class="big" id="score">0</div></div>
             <div class="stat"><span class="gh-label">Reihen</span><div class="gh-value" id="lines">0</div></div>
             <div class="stat"><span class="gh-label">Level</span><div class="gh-value" id="level">1</div></div>
+            <div class="stat"><span class="gh-label" id="timeLabel">Zeit</span><div class="gh-value" id="time">0:00</div></div>
             <div class="stat"><span class="gh-label">Bestwert</span><div class="gh-value" id="best">0</div></div>
         </aside>
 
         <div class="board">
             <canvas id="tetris"></canvas>
             <div class="gh-overlay" id="overlay">
-                <div class="gh-overlay-card">
+                <div class="gh-overlay-card menu-card">
                     <h2 id="ovTitle">Tetris</h2>
-                    <p id="ovText">Räume volle Reihen ab.</p>
+                    <p id="ovText">Wähle einen Modus.</p>
+                    <div class="modes" id="modes"></div>
                     <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
                 </div>
             </div>
@@ -35,7 +37,7 @@
                 <span class="gh-label">Nächster Stein</span>
                 <canvas id="next"></canvas>
             </div>
-            <div class="keys">
+            <div class="keys kbd-hint">
                 <div><kbd>←</kbd><kbd>→</kbd> bewegen</div>
                 <div><kbd>↑</kbd> drehen</div>
                 <div><kbd>↓</kbd> schneller</div>
@@ -44,6 +46,8 @@
             </div>
         </aside>
     </div>
+    <script src="/assets/js/touch.js"></script>
+    <script src="/games/tetris/core.js"></script>
     <script src="/games/tetris/game.js"></script>
 </body>
 </html>

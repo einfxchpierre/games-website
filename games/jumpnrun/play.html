@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Jump'n Run · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -17,9 +17,9 @@
         </div>
         <span class="gh-label">Jump'n Run</span>
         <h1>Level wählen</h1>
-        <p class="sub">Sammle Münzen, weiche Gegnern aus und erreiche die Flagge.</p>
+        <p class="sub">12 Level – sammle Münzen, springe Gegnern auf den Kopf und erreiche die Flagge.</p>
         <div id="level-grid"></div>
-        <p class="hint"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> laufen · <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Leertaste</kbd> springen</p>
+        <p class="hint kbd-hint"><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> laufen · <kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Leertaste</kbd> springen</p>
     </div>
 
     <div id="game-screen" class="hidden">
@@ -51,6 +51,7 @@
         </div>
     </div>
 
+    <script src="/assets/js/touch.js"></script>
     <script type="module" src="/games/jumpnrun/game.js"></script>
 </body>
 </html>

@@ -1,12 +1,27 @@
 {
+  "id": "/",
   "name": "GAMEHUB",
   "short_name": "GAMEHUB",
-  "description": "Desktop-Launcher für Browser-Spiele",
-  "start_url": "/",
-  "display": "fullscreen",
+  "description": "Spiele-Launcher mit 2D- und 3D-Spielen – Tetris, Snake, Schach, Tower Defense und mehr.",
+  "lang": "de",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#06020a",
   "theme_color": "#06020a",
+  "categories": ["games", "entertainment"],
   "icons": [
-    { "src": "/assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Tetris", "url": "/games/tetris", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Snake 3D", "url": "/games/snake-3d", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Schach", "url": "/games/chess", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Tower Defense 3D", "url": "/games/tower-defense-3d", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

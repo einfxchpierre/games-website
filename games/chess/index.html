@@ -2,25 +2,34 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <script src="/assets/js/device-guard.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="/assets/js/boot.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#06020a">
   <title>GAMEHUB</title>
+  <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GAMEHUB">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body>
-  <!-- GAMEHUB-Spielseite: lädt play.html dieses Ordners im Player (siehe /assets/js/player.js) -->
+  <!-- GAMEHUB-Spielseite: lädt play.html dieses Ordners im Player (siehe /assets/js/player.js).
+       Diese Datei ist für alle Spiele identisch – die Spiel-ID kommt aus der URL /games/<id>. -->
   <div class="player open" id="player">
     <div class="player-bar">
       <button class="btn btn-sm" type="button" id="closePlayerBtn">Bibliothek</button>
       <span class="name" id="playerName"></span>
       <span class="timer" id="playerTimer">00:00</span>
       <span class="spacer"></span>
-      <span class="muted" style="font-size:12.5px"><kbd>Shift</kbd>+<kbd>Esc</kbd> beenden</span>
+      <a class="btn btn-sm variant-btn" id="variantBtn" hidden></a>
+      <span class="muted kbd-hint" style="font-size:12.5px"><kbd>Shift</kbd>+<kbd>Esc</kbd> beenden</span>
       <button class="icon-btn" type="button" aria-label="Neu laden" id="reloadBtn"></button>
       <button class="icon-btn" type="button" aria-label="Vollbild" id="playerFsBtn"></button>
       <a class="brand-mini" href="/">GAMEHUB</a>

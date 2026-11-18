@@ -4,7 +4,7 @@
 (function () {
   "use strict";
 
-  const { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, toast } = window.GH;
+  const { icon, esc, fmt, relTime, duration, initials, gameIcon, Store, toast, lsSet } = window.GH;
   const GAMES = window.GAMES_DATA || [];
   const COLORS = window.CATEGORY_COLORS || {};
   const BY_ID = Object.fromEntries(GAMES.map((g) => [g.id, g]));
@@ -26,7 +26,7 @@
   function readHash() {
     const h = decodeURIComponent(location.hash.replace(/^#/, ""));
     state.view = h === "profil" || h === "konto" ? "account" : "library";
-    state.filter = h === "favoriten" ? "favs" : h === "zuletzt" ? "recent" : "all";
+    state.filter = h === "favoriten" ? "favs" : h === "zuletzt" ? "recent" : h === "3d" ? "3d" : "all";
     state.category = h.indexOf("kategorie=") === 0 ? h.slice(10) : "";
   }
 
@@ -49,6 +49,7 @@
     );
     if (state.filter === "favs") games = games.filter((g) => favs.includes(g.id));
     if (state.filter === "recent") games = games.filter((g) => per[g.id] && per[g.id].last);
+    if (state.filter === "3d") games = games.filter((g) => g.is3d);
     const s = (g) => per[g.id] || { count: 0, last: 0 };
     const sort = state.filter === "recent" ? "recent" : state.sort;
     games.sort((a, b) => {
@@ -57,6 +58,13 @@
       return s(b).count - s(a).count || a.name.localeCompare(b.name, "de");
     });
     return games;
+  }
+
+  function bestText(g) {
+    const b = window.GHStats ? GHStats.best(g.id) : null;
+    if (b == null) return null;
+    const v = g.score === "%" ? fmt(Math.round(b * 10) / 10) + " %" : fmt(b) + (g.score ? " " + g.score : "");
+    return v;
   }
 
   function sessionsIn(id, from, to) {
@@ -86,6 +94,7 @@
       item("all", "#", "library", "Bibliothek", '<span class="count">' + GAMES.length + "</span>") +
       item("favs", "#favoriten", "star", "Favoriten", favCount ? '<span class="count">' + favCount + "</span>" : "") +
       item("recent", "#zuletzt", "clock", "Zuletzt gespielt") +
+      item("3d", "#3d", "cube", "3D-Spiele", '<span class="count">' + GAMES.filter((g) => g.is3d).length + "</span>") +
       item("account", "#profil", "user", "Profil") +
       '<div class="nav-divider"></div><div class="nav-label">Kategorien</div>' +
       Object.keys(cats).sort().map((c) =>
@@ -94,6 +103,7 @@
       ).join("") +
       "</nav></div>" +
       '<div class="sidebar-foot">' +
+      (canInstall() ? '<button class="nav-item install" type="button" data-install>' + icon("download") + "<span>App installieren</span></button>" : "") +
       '<button class="nav-item" type="button" data-settings>' + icon("settings") + "<span>Einstellungen</span></button>" +
       '<div class="user">' + avatar +
       '<a class="user-meta" href="#profil"><strong>' + esc(name) + "</strong><small>" + esc(sub) + "</small></a>" +
@@ -147,22 +157,21 @@
     $("hero").innerHTML =
       '<div class="fade-in" style="min-width:0">' +
         '<div class="hero-kicker"><span class="chip"><span class="dot" style="background:' + esc(COLORS[g.category] || "#888") + '"></span>' + esc(g.category) + "</span>" +
+        (g.is3d ? '<span class="chip dim">3D</span>' : '<span class="chip">2D</span>') +
         "<span>" + esc(g.controls) + "</span></div>" +
         '<h2 class="hero-name">' + esc(g.name) + "</h2>" +
         '<div class="hero-sub">' + sub + "</div>" +
         '<p class="hero-desc">' + esc(g.description) + "</p>" +
         '<div class="hero-actions">' +
           '<button class="btn btn-white btn-lg btn-play" type="button" data-launch="' + esc(g.id) + '">' + icon("play") + "Spielen</button>" +
+          (g.variant && BY_ID[g.variant] ? '<button class="btn btn-lg" type="button" data-launch="' + esc(g.variant) + '">' + icon(BY_ID[g.variant].is3d ? "cube" : "library") + (BY_ID[g.variant].is3d ? "3D-Version" : "2D-Version") + "</button>" : "") +
           '<button class="btn btn-lg' + (fav ? " on" : "") + '" type="button" data-fav="' + esc(g.id) + '">' + icon("star") + (fav ? "Favorit" : "Merken") + "</button>" +
           '<span class="hero-hint"><kbd>Enter</kbd> starten</span>' +
         "</div>" +
       "</div>" +
       '<div class="cover fade-in" style="--cover-color:' + esc(g.color) + '">' + gameIcon(g) + "</div>";
 
-    // Rang nach Sessions
-    const all = Store.perGame();
-    const ranked = GAMES.filter((x) => all[x.id] && all[x.id].count).sort((a, b) => all[b.id].count - all[a.id].count);
-    const rank = ranked.findIndex((x) => x.id === g.id);
+    const best = bestText(g);
 
     const cell = (label, value) => '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + "</div></div>";
     $("stats").innerHTML =
@@ -170,7 +179,7 @@
       cell("Sessions", per.count ? fmt(per.count) : "–") +
       cell("Spielzeit", duration(per.time)) +
       cell("Zuletzt gespielt", per.last ? relTime(per.last) : "–") +
-      cell("Rang", rank >= 0 ? "#" + (rank + 1) + ' <small class="muted">von ' + ranked.length + "</small>" : "–") +
+      cell("Bestwert", best ? esc(best) : "–") +
       cell("Favorit", fav ? 'Ja <small class="delta">★</small>' : "–");
   }
 
@@ -182,14 +191,15 @@
     const favs = Store.favs();
     const per = Store.perGame();
 
-    const title = state.category || { all: "Alle Spiele", favs: "Favoriten", recent: "Zuletzt gespielt" }[state.filter];
+    const title = state.category || { all: "Alle Spiele", favs: "Favoriten", recent: "Zuletzt gespielt", "3d": "3D-Spiele" }[state.filter];
     $("shelfTitle").innerHTML = esc(title) + ' <span class="muted" style="font-weight:500">· ' + games.length + "</span>";
-    $("libTitle").textContent = state.category ? state.category : state.filter === "favs" ? "Favoriten" : state.filter === "recent" ? "Zuletzt gespielt" : "Bibliothek";
+    $("libTitle").textContent = state.category ? state.category : { favs: "Favoriten", recent: "Zuletzt gespielt", "3d": "3D-Spiele" }[state.filter] || "Bibliothek";
 
     $("shelf").innerHTML = games.length
       ? games.map((g) =>
           '<button class="game-card' + (g.id === state.selected ? " selected" : "") + '" type="button" role="option" data-select="' + esc(g.id) + '" aria-selected="' + (g.id === state.selected) + '">' +
           '<span class="art" style="--c:' + esc(g.color) + '">' + gameIcon(g) + "</span>" +
+          (g.is3d ? '<span class="dim-badge">3D</span>' : "") +
           '<span class="play" data-launch="' + esc(g.id) + '" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg></span>' +
           (favs.includes(g.id) ? '<svg class="fav" viewBox="0 0 24 24" aria-label="Favorit"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>' : "") +
           '<span class="name">' + esc(g.name) + "</span>" +
@@ -262,6 +272,16 @@
       cell("Gespielt", fmt(played) + ' <small class="muted">/ ' + GAMES.length + "</small>") +
       cell("Favoriten", fmt(Store.favs().length));
 
+    // Bestwerte aller Spiele (GHStats, im Browser gespeichert)
+    const stats = window.GHStats ? GHStats.all() : {};
+    $("bestList").innerHTML = GAMES.map((g) => {
+      const st = stats[g.id] || {};
+      const b = bestText(g);
+      return '<div class="best-row" data-goto="' + esc(g.id) + '">' + gameIcon(g) +
+        '<div class="n">' + esc(g.name.replace(/ 3D$/, "")) + (g.is3d ? "<small>3D</small>" : "") + "</div>" +
+        '<div class="v">' + (b ? esc(b) : '<span class="muted">–</span>') + "<small>" + (st.plays ? fmt(st.plays) + (st.plays === 1 ? " Runde" : " Runden") : "noch nicht gespielt") + "</small></div></div>";
+    }).join("");
+
     const top = GAMES.filter((g) => per[g.id] && per[g.id].count).sort((a, b) => per[b.id].count - per[a.id].count).slice(0, 6);
     $("topMeta").textContent = top.length ? "nach Sessions" : "";
     $("topList").innerHTML = top.length
@@ -299,6 +319,9 @@
     }
 
     $("playerName").innerHTML = gameIcon(g) + esc(g.name);
+    const vb = $("variantBtn"), other = g.variant && BY_ID[g.variant];
+    vb.hidden = !other;
+    if (other) { vb.textContent = other.is3d ? "3D-Version" : "2D-Version"; vb.dataset.launch = other.id; }
     $("playerLoading").classList.remove("hidden");
     // replace() statt src: erzeugt keinen zusätzlichen Verlaufseintrag
     $("playerFrame").contentWindow.location.replace(g.path);
@@ -379,7 +402,11 @@
       '<label class="switch"><input type="checkbox" id="setFs"' + (s.fullscreen ? " checked" : "") + '><i></i></label></div>' +
       '<div class="setting"><div><strong>Spielername</strong><span>' + esc(playerName()) + "</span></div>" +
       '<a class="btn btn-sm" href="#profil" data-close-modal>Ändern</a></div>' +
-      '<div class="setting"><div><strong>Lokale Daten</strong><span>Sessions, Spielzeit und Favoriten löschen</span></div>' +
+      '<div class="setting"><div><strong>App installieren</strong><span>' + (isStandalone() ? "GAMEHUB läuft bereits als App" : "Auf PC, Handy oder Tablet wie eine App nutzen – auch offline") + "</span></div>" +
+      (isStandalone() ? "" : '<button class="btn btn-sm btn-accent" type="button" data-install>Installieren</button>') + "</div>" +
+      '<div class="setting"><div><strong>Statistik sichern</strong><span>Alle Bestwerte und Sessions als Datei</span></div>' +
+      '<button class="btn btn-sm" type="button" data-export>Exportieren</button></div>' +
+      '<div class="setting"><div><strong>Lokale Daten</strong><span>Sessions, Spielzeit, Favoriten und Bestwerte löschen</span></div>' +
       '<button class="btn btn-sm" type="button" data-reset style="color:var(--neg)">' + icon("trash") + "Zurücksetzen</button></div>" +
       "</div>";
     modal.classList.add("open");
@@ -402,6 +429,69 @@
     if (state.view === "library") renderShelf(true);
     else renderAccount();
     markNav();
+  }
+
+  /* ==========================================================================
+     PWA-Installation & Statistik-Export
+     ========================================================================== */
+  let deferredInstall = null;
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isStandalone = () => (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  function canInstall() { return !isStandalone() && (!!deferredInstall || isIOS()); }
+
+  async function install() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      const choice = await deferredInstall.userChoice.catch(() => null);
+      if (choice && choice.outcome === "accepted") deferredInstall = null;
+      renderSidebar();
+      return;
+    }
+    const modal = $("settingsModal");
+    const steps = isIOS()
+      ? '<ol class="ios-steps"><li>Tippe in Safari auf <b>Teilen</b> (Quadrat mit Pfeil).</li><li>Wähle <b>Zum Home-Bildschirm</b>.</li><li>Bestätige mit <b>Hinzufügen</b>.</li></ol>'
+      : '<ol class="ios-steps"><li>Öffne GAMEHUB in <b>Chrome</b> oder <b>Edge</b>.</li><li>Klicke in der Adressleiste auf das <b>Installieren-Symbol</b> (Bildschirm mit Pfeil) bzw. im Menü auf <b>App installieren</b>.</li><li>Auf Android: Menü <b>⋮</b> → <b>App installieren</b>.</li></ol>';
+    modal.innerHTML = '<div class="modal-card"><div class="modal-head"><h2 id="settingsTitle">App installieren</h2><button class="icon-btn" type="button" data-close-modal aria-label="Schließen">' + icon("x") + "</button></div>" +
+      '<p class="muted" style="margin:0 0 14px">GAMEHUB lässt sich wie eine App installieren – mit eigenem Symbol, im Vollbild und auch offline.</p>' + steps + "</div>";
+    modal.classList.add("open");
+  }
+
+  function exportStats() {
+    const data = {
+      app: "GAMEHUB", version: 1, exported: new Date().toISOString(),
+      stats: window.GHStats ? GHStats.all() : {},
+      plays: Store.plays(), time: Store.time(), favs: Store.favs(), settings: Store.settings()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "gamehub-statistik-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast("Statistik exportiert");
+  }
+
+  function importStats(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (!d || d.app !== "GAMEHUB") throw new Error("keine GAMEHUB-Datei");
+        if (!confirm("Statistik aus der Datei übernehmen? Die aktuelle Statistik in diesem Browser wird ersetzt.")) return;
+        if (window.GHStats && d.stats) GHStats.replaceAll(d.stats);
+        lsSet("gh_plays", d.plays || []);
+        lsSet("gh_time", d.time || {});
+        lsSet("gh_favs", d.favs || []);
+        if (d.settings) lsSet("gh_settings", d.settings);
+        toast("Statistik importiert");
+        renderSidebar();
+        render();
+      } catch (err) {
+        toast("Datei konnte nicht gelesen werden");
+      }
+    };
+    reader.readAsText(file);
   }
 
   function init() {
@@ -428,15 +518,23 @@
     $("filterTabs").addEventListener("click", (e) => {
       const t = e.target.closest("[data-filter]");
       if (!t) return;
-      location.hash = { all: "", favs: "favoriten", recent: "zuletzt" }[t.dataset.filter];
+      location.hash = { all: "", favs: "favoriten", recent: "zuletzt", "3d": "3d" }[t.dataset.filter];
     });
 
     document.addEventListener("click", (e) => {
+      if (e.target.closest("[data-open-nav]")) { document.body.classList.add("nav-open"); return; }
+      if (e.target.closest("[data-close-nav]") || (e.target.closest(".sidebar a") && document.body.classList.contains("nav-open"))) document.body.classList.remove("nav-open");
+      if (e.target.closest("[data-install]")) { e.preventDefault(); document.body.classList.remove("nav-open"); install(); return; }
+      if (e.target.closest("[data-export]")) { exportStats(); return; }
       const t = e.target.closest("[data-launch],[data-select],[data-fav],[data-random],[data-fullscreen],[data-settings],[data-close-modal],[data-reset],[data-close-player],[data-reload-player],[data-goto]");
       if (e.target === $("settingsModal")) closeModal();
       if (!t) return;
-      if (t.matches("[data-launch]")) { e.stopPropagation(); select(t.dataset.launch, false); launch(t.dataset.launch); }
-      else if (t.matches("[data-select]")) { if (e.detail < 2) select(t.dataset.select); }
+      if (t.matches("[data-launch]")) { e.stopPropagation(); document.body.classList.remove("nav-open"); select(t.dataset.launch, false); launch(t.dataset.launch); }
+      else if (t.matches("[data-select]")) {
+        // Auf Touch-Geräten: zweites Antippen derselben Karte startet das Spiel
+        if (window.GH_TOUCH && state.selected === t.dataset.select) launch(t.dataset.select);
+        else if (e.detail < 2) { select(t.dataset.select); if (window.GH_TOUCH) $("hero").scrollIntoView({ behavior: "smooth", block: "start" }); }
+      }
       else if (t.matches("[data-fav]")) {
         const on = Store.toggleFav(t.dataset.fav);
         toast(on ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
@@ -444,11 +542,11 @@
       }
       else if (t.matches("[data-random]")) randomGame();
       else if (t.matches("[data-fullscreen]")) toggleFullscreen();
-      else if (t.matches("[data-settings]")) openSettings();
+      else if (t.matches("[data-settings]")) { document.body.classList.remove("nav-open"); openSettings(); }
       else if (t.matches("[data-close-modal]")) closeModal();
       else if (t.matches("[data-reset]")) {
-        if (confirm("Alle lokalen Sessions, Spielzeiten und Favoriten löschen?")) {
-          Store.reset(); closeModal(); toast("Lokale Daten zurückgesetzt"); renderSidebar(); render();
+        if (confirm("Alle lokalen Sessions, Spielzeiten, Favoriten und Bestwerte löschen?")) {
+          Store.reset(); if (window.GHStats) GHStats.reset(); closeModal(); toast("Lokale Daten zurückgesetzt"); renderSidebar(); render();
         }
       }
       else if (t.matches("[data-close-player]")) closePlayer();
@@ -491,6 +589,10 @@
       }
       else if (e.key.toLowerCase() === "r") randomGame();
     });
+
+    $("importFile").addEventListener("change", (e) => { if (e.target.files[0]) importStats(e.target.files[0]); e.target.value = ""; });
+    window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstall = e; renderSidebar(); });
+    window.addEventListener("appinstalled", () => { deferredInstall = null; toast("GAMEHUB wurde installiert"); renderSidebar(); });
 
     window.addEventListener("hashchange", () => { readHash(); render(); });
 

@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Cookie Clicker · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -12,30 +12,31 @@
 <body>
     <div class="game-container">
         <div class="click-section">
+            <a href="/" class="gh-back back-btn">← Bibliothek</a>
             <span class="gh-label">Cookies</span>
-            <h1 id="cookie-count">0 Cookies</h1>
+            <h1 id="cookie-count">0</h1>
             <p id="cps-display">0 pro Sekunde</p>
-            
-            <div id="cookie-container" onclick="clickCookie()">
+
+            <div id="cookie-container" role="button" aria-label="Cookie anklicken">
                 <div id="cookie-css">
-                    <div class="chip c1"></div>
-                    <div class="chip c2"></div>
-                    <div class="chip c3"></div>
-                    <div class="chip c4"></div>
-                    <div class="chip c5"></div>
-                    <div class="chip c6"></div>
+                    <div class="chip c1"></div><div class="chip c2"></div><div class="chip c3"></div>
+                    <div class="chip c4"></div><div class="chip c5"></div><div class="chip c6"></div>
                 </div>
             </div>
-
-            <a href="/" class="gh-back back-btn">← Bibliothek</a>
+            <p class="sub-stats"><span id="click-value">+1</span> pro Klick · <span id="total">0</span> insgesamt</p>
         </div>
 
         <div class="shop-section">
-            <div class="shop-head"><h2>Shop</h2><span class="gh-label">Upgrades</span></div>
-            <div id="shop-items">
-                </div>
+            <div class="tabs">
+                <button class="tab active" data-tab="buildings">Gebäude</button>
+                <button class="tab" data-tab="upgrades">Upgrades <span class="badge" id="upBadge"></span></button>
+                <button class="tab" data-tab="ach">Erfolge <span class="count" id="achCount"></span></button>
+            </div>
+            <div id="shop-items"></div>
         </div>
     </div>
+    <div id="toast" class="toast"></div>
+    <script src="/games/cookie-clicker/core.js"></script>
     <script src="/games/cookie-clicker/game.js"></script>
 </body>
 </html>

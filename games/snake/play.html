@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Snake · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -15,7 +15,8 @@
         <div class="header">
             <a href="/" class="gh-back exit-link">← Bibliothek</a>
             <div class="scores">
-                <div><span class="gh-label">Punkte</span><div class="gh-value" id="currentScore">0</div></div>
+                <div><span class="gh-label" id="levelLabel">Modus</span><div class="gh-value" id="levelName">–</div></div>
+                <div><span class="gh-label">Äpfel</span><div class="gh-value" id="currentScore">0</div></div>
                 <div><span class="gh-label">Bestwert</span><div class="gh-value" id="bestScore">0</div></div>
             </div>
         </div>
@@ -23,17 +24,27 @@
         <div class="board">
             <canvas id="snakeCanvas"></canvas>
             <div class="gh-overlay" id="overlay">
-                <div class="gh-overlay-card">
+                <div class="gh-overlay-card menu-card">
                     <h2 id="ovTitle">Snake</h2>
-                    <p id="ovText">Steuere mit den Pfeiltasten oder WASD.</p>
-                    <button class="gh-btn gh-btn-white" id="btnStart">Spiel starten</button>
+                    <p id="ovText">Wähle Klassik oder ein Level.</p>
+                    <div id="menu">
+                        <button class="gh-btn gh-btn-white wide" id="btnClassic">Klassik (endlos)</button>
+                        <p class="gh-label" style="margin:16px 0 8px">Level</p>
+                        <div class="level-grid" id="levelGrid"></div>
+                    </div>
+                    <div id="after" hidden>
+                        <button class="gh-btn" id="btnMenu">Menü</button>
+                        <button class="gh-btn gh-btn-white" id="btnStart">Weiter</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <p class="hint"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steuern · <kbd>Leertaste</kbd> Pause</p>
+        <p class="hint kbd-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steuern · <kbd>Leertaste</kbd> Pause</p>
     </div>
 
+    <script src="/assets/js/touch.js"></script>
+    <script src="/games/snake/levels.js"></script>
     <script src="/games/snake/game.js"></script>
 </body>
 </html>

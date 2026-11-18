@@ -1,7 +1,18 @@
-# Saubere URLs auf Apache-Hosting
+# GAMEHUB – Apache-Konfiguration
 Options -Indexes
 DirectoryIndex index.html
+
+# Saubere URLs (/games/tetris → /games/tetris/index.html, /seite → /seite.html)
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME}.html -f
 RewriteRule ^(.+?)/?$ $1.html [L]
+
+# PWA: Service Worker nie zwischenspeichern, Manifest-Typ
+<Files "sw.js">
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
+  Header set Service-Worker-Allowed "/"
+</Files>
+<Files "manifest.json">
+  ForceType application/manifest+json
+</Files>

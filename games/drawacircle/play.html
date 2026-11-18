@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
+    <script src="/assets/js/boot.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Draw a Circle · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
@@ -75,6 +75,12 @@
         .score-label { margin-top: 8px; color: var(--gh-text-2); font-size: 13px; font-weight: 500; }
 
         .btn { height: 46px; padding: 0 30px; font-size: 15px; }
+        .challenges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .ch { min-width: 40px; height: 32px; padding: 0 12px; border: 1px solid var(--gh-line-strong); border-radius: 999px; background: transparent; color: var(--gh-text-2); font: 600 13px var(--gh-font); cursor: pointer; }
+        .ch.on { background: #fff; border-color: #fff; color: #120816; }
+        .ch.done:not(.on) { color: var(--color-green); border-color: rgba(61,220,151,.4); }
+        .ch.locked { opacity: .35; cursor: not-allowed; }
+        @media (max-width: 820px) { .title h1 { font-size: 28px; } .game-container { gap: 14px; justify-content: flex-start; } }
         .color-red { color: var(--color-red); }
         .color-yellow { color: var(--color-yellow); }
         .color-green { color: var(--color-green); }
@@ -90,6 +96,7 @@
     <div class="game-container">
         <div class="title"><span class="gh-label">Draw a Circle</span><h1>Perfekter Kreis</h1><div id="info-text" class="info-text">Zeichne einen Kreis in die Box!</div></div>
 
+        <div class="challenges" id="challenges"></div>
         <div id="canvas-container">
             <canvas id="gameCanvas"></canvas>
             <div id="result-overlay" class="result-overlay">
@@ -101,6 +108,7 @@
         <button id="reset-btn" class="btn gh-btn gh-btn-white" style="visibility: hidden;">Nochmal versuchen</button>
     </div>
 
+    <script src="/games/drawacircle/challenges.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -111,7 +119,7 @@
         const resetBtn = document.getElementById('reset-btn');
         const highscoreVal = document.getElementById('highscore-val');
 
-        let points = [];
+        let points = [], drawStart = 0, evaluatedOnce = false;
         let isDrawing = false;
         let isFinished = false;
 
@@ -125,7 +133,7 @@
             const dpr = window.devicePixelRatio || 1;
             canvas.width = rect.width * dpr;
             canvas.height = rect.height * dpr;
-            ctx.scale(dpr, dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             
             // Wenn schon gezeichnet wurde, nach Resize neu rendern (optional)
             if (isFinished) {
@@ -158,6 +166,7 @@
             if (isFinished) return;
             isDrawing = true;
             points = [];
+            drawStart = performance.now();
             const pos = getPos(e);
             points.push(pos);
             
@@ -199,6 +208,36 @@
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         window.addEventListener('mouseup', endDrawing);
+
+        /* ---------- Herausforderungen & Statistik ---------- */
+        let challenge = -1; // -1 = freies Zeichnen
+        const chBox = document.getElementById('challenges');
+        function renderChallenges() {
+            const unlocked = window.GHStats ? GHStats.unlocked('drawacircle') : 1;
+            chBox.innerHTML = '<button class="ch' + (challenge < 0 ? ' on' : '') + '" data-ch="-1">Frei</button>' +
+                CIRCLE_CHALLENGES.map((c, i) => '<button class="ch' + (challenge === i ? ' on' : '') + (i + 1 > unlocked ? ' locked' : '') + (i + 1 < unlocked ? ' done' : '') + '" data-ch="' + i + '"' + (i + 1 > unlocked ? ' disabled' : '') + ' title="' + c.desc + '">' + (i + 1 < unlocked ? '✓ ' : '') + (i + 1) + '</button>').join('');
+            infoText.textContent = challenge < 0 ? 'Zeichne einen Kreis in die Box!' : 'Herausforderung ' + (challenge + 1) + ' · ' + CIRCLE_CHALLENGES[challenge].name + ': ' + CIRCLE_CHALLENGES[challenge].desc;
+        }
+        chBox.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-ch]'); if (!b || b.disabled) return;
+            challenge = +b.dataset.ch;
+            resetBtn.click();
+            renderChallenges();
+        });
+        function onResult(res) {
+            if (window.GHStats) GHStats.record('drawacircle', res.score);
+            if (challenge < 0) return;
+            const c = CIRCLE_CHALLENGES[challenge], r = checkCircleChallenge(c, res);
+            if (r.ok) {
+                if (window.GHStats) GHStats.unlock('drawacircle', challenge + 2);
+                infoText.textContent = challenge + 1 < CIRCLE_CHALLENGES.length ? '✓ Geschafft! Herausforderung ' + (challenge + 2) + ' ist freigeschaltet.' : '✓ Alle Herausforderungen gemeistert!';
+                const keep = challenge;
+                renderChallenges();
+                challenge = keep;
+                infoText.textContent = keep + 1 < CIRCLE_CHALLENGES.length ? '✓ Geschafft! Herausforderung ' + (keep + 2) + ' ist freigeschaltet.' : '✓ Alle Herausforderungen gemeistert!';
+            } else infoText.textContent = '✗ Nicht geschafft: ' + r.why;
+        }
+        renderChallenges();
 
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
         canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
@@ -314,6 +353,12 @@
             resultOverlay.style.display = 'block';
             infoText.textContent = "Auswertung fertig!";
 
+            // Ergebnis an Statistik/Herausforderungen melden (nur einmal pro Zeichnung)
+            if (!evaluatedOnce) {
+                evaluatedOnce = true;
+                onResult({ score: Math.round(score * 10) / 10, r: avgRadius / (w / 2), time: points.length ? performance.now() - drawStart : 0 });
+            }
+
             // Highscore abgleichen & abspeichern
             if (score > highscore) {
                 highscore = score;
@@ -327,6 +372,7 @@
 
         // Reset Button Klick
         resetBtn.addEventListener('click', () => {
+            evaluatedOnce = false;
             isFinished = false;
             isDrawing = false;
             points = [];

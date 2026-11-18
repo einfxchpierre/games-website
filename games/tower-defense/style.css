@@ -52,3 +52,31 @@ canvas { display: block; cursor: crosshair; }
 .final-stats b { color: var(--gh-text); }
 .gh-overlay-card .gh-btn { margin: 0 4px; }
 .hidden { display: none !important; }
+
+#start-screen { position: fixed; }
+.start-card { width: min(520px, 94vw); }
+.start-card h2 { margin: 4px 0 16px !important; }
+.maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.map-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 10px; border: 1px solid var(--gh-line-strong); border-radius: 14px;
+    background: var(--gh-card-2); color: var(--gh-text); font-family: var(--gh-font); cursor: pointer;
+}
+.map-btn canvas { width: 100%; height: auto; border-radius: 8px; }
+.map-btn b { font-size: 13.5px; }
+.map-btn small { color: var(--gh-text-3); font-size: 11.5px; }
+.map-btn.on { border-color: var(--gh-accent); background: var(--gh-accent-soft); }
+.diffs { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
+.diffs .gh-btn { height: 34px; font-size: 13px; }
+
+/* Handy & Tablet */
+@media (max-width: 820px) {
+    #game-ui { top: calc(8px + env(safe-area-inset-top)); left: 8px; right: 8px; flex-wrap: wrap; gap: 8px; padding: 8px; }
+    .left { gap: 12px; width: 100%; justify-content: space-between; }
+    .stats { gap: 14px; }
+    .shop { width: 100%; }
+    .tower-btn { flex: 1; padding: 6px 8px; }
+    .tower-btn small, .tower-btn kbd { display: none; }
+    .maps { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .map-btn small { display: none; }
+}

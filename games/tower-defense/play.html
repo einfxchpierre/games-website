@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/assets/js/boot.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tower Defense · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/assets/css/game.css">
@@ -31,6 +31,20 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
+
+    <div id="start-screen" class="gh-overlay hidden">
+        <div class="gh-overlay-card start-card">
+            <span class="gh-label">Tower Defense</span>
+            <h2>Karte wählen</h2>
+            <div class="maps" id="maps"></div>
+            <div class="diffs">
+                <button class="gh-btn" data-diff="easy">Leicht</button>
+                <button class="gh-btn" data-diff="normal">Normal</button>
+                <button class="gh-btn" data-diff="hard">Schwer</button>
+            </div>
+            <button class="gh-btn gh-btn-white" id="btnStartTD" style="height:46px;padding:0 34px">Spiel starten</button>
+        </div>
+    </div>
 
     <div id="game-over-screen" class="gh-overlay hidden">
         <div class="gh-overlay-card">

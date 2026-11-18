@@ -23,6 +23,15 @@
   $("#closePlayerBtn").innerHTML = icon("arrowLeft") + "Bibliothek";
   $("#reloadBtn").innerHTML = icon("reload");
 
+  // Wechsel zwischen 2D- und 3D-Version
+  const other = game.variant && (window.GAMES_DATA || []).find((g) => g.id === game.variant);
+  const vb = $("#variantBtn");
+  if (other && vb) {
+    vb.hidden = false;
+    vb.href = other.url;
+    vb.textContent = other.is3d ? "3D-Version" : "2D-Version";
+  }
+
   const frame = $("#playerFrame");
   frame.contentWindow.location.replace(game.path);
 

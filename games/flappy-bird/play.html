@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <script src="/assets/js/device-guard.js"></script>
+    <script src="/assets/js/boot.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Bird · GAMEHUB</title>
     <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
@@ -22,7 +22,12 @@
                 <span class="gh-label">Bestwert</span>
                 <div id="bestScore" class="gh-value">0</div>
             </div>
-            <p class="hint"><kbd>Leertaste</kbd> oder Klick zum Fliegen</p>
+            <div>
+                <span class="gh-label">Modus</span>
+                <div class="gh-value" id="modeLabel" style="font-size:18px">Normal</div>
+            </div>
+            <p class="hint kbd-only"><kbd>Leertaste</kbd> oder Klick zum Fliegen</p>
+            <p class="hint touch-only">Tippe aufs Spielfeld zum Fliegen</p>
         </aside>
 
         <div class="canvas-wrapper">
@@ -30,16 +35,19 @@
 
             <div id="restartMenu" class="gh-overlay">
                 <div class="gh-overlay-card">
-                    <h2>Spiel vorbei</h2>
-                    <p id="finalScore">0 Punkte</p>
-                    <button id="btnRestart" class="gh-btn gh-btn-white">Nochmal spielen</button>
+                    <h2 id="menuTitle">Flappy Bird</h2>
+                    <p id="finalScore">Wähle eine Schwierigkeit.</p>
+                    <div class="modes" id="modes">
+                        <button class="gh-btn" data-mode="easy">Leicht</button>
+                        <button class="gh-btn" data-mode="normal">Normal</button>
+                        <button class="gh-btn" data-mode="hard">Schwer</button>
+                    </div>
+                    <button id="btnRestart" class="gh-btn gh-btn-white">Spiel starten</button>
                 </div>
             </div>
         </div>
 
-        <div class="controls">
-            <button id="btnJump" class="gh-btn">Flügelschlag</button>
-        </div>
+        <div class="controls"></div>
     </div>
 
     <script src="/games/flappy-bird/game.js"></script>
